@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace bikestation.Tests
 {
     // Konten, Buchen, Riegel, Abholen und Alarm der abschließbaren Boxen
-    public class BoxTests : IDisposable
+    public class BoxTests : IAsyncLifetime, IDisposable
     {
         private const int Near = 3;   // Fahrrad direkt vor dem Sensor (<= 5 cm)
         private const int Far = 80;   // nichts in der Box
@@ -22,6 +22,15 @@ namespace bikestation.Tests
         });
 
         public void Dispose() => _app.Dispose();
+
+        // Station ist verbunden: jede Box hat gerade gemeldet (sonst lehnt die API das Buchen ab)
+        public async Task InitializeAsync()
+        {
+            var device = _app.DeviceClient();
+            foreach (var slot in new[] { 1, 2, 3 }) await Reading(device, slot, Far);
+        }
+
+        public Task DisposeAsync() => Task.CompletedTask;
 
         private async Task<HttpClient> RegisterAsync(BikestationApp app, string username)
         {
@@ -117,6 +126,18 @@ namespace bikestation.Tests
             Assert.Equal(JsonValueKind.Null, me.GetProperty("parking").ValueKind);
             Assert.Equal("Completed", me.GetProperty("history")[0].GetProperty("endReason").GetString());
             Assert.Empty(me.GetProperty("alerts").EnumerateArray());
+        }
+
+        [Fact]
+        public async Task Buchen_bei_offline_Station_wird_abgelehnt()
+        {
+            using var app = new BikestationApp(settings: new() { ["Devices:OfflineAfterSeconds"] = "30" });
+            var user = await RegisterAsync(app, "anna");   // Station hat sich noch nie gemeldet
+            var response = await user.PostAsync("/api/boxes/1/book", null);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            Assert.Equal("Offline", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("type").GetString());
+            Assert.Equal("Free", (await Box(user, 1)).GetProperty("state").GetString());
         }
 
         [Fact]

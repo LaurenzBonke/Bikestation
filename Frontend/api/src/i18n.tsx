@@ -221,6 +221,7 @@ const de = {
   'admin.released': '{slot} wurde wieder freigegeben.',
   'admin.noBlocked': 'Keine gesperrten Boxen.',
   'slot.boxState': 'Box: {state}',
+  'error.offline': 'Die Station ist gerade nicht verbunden. Bitte gleich noch einmal versuchen.',
 }
 
 export type TranslationKey = keyof typeof de
@@ -446,6 +447,7 @@ const en: Translations = {
   'admin.released': '{slot} has been released again.',
   'admin.noBlocked': 'No blocked boxes.',
   'slot.boxState': 'Box: {state}',
+  'error.offline': 'The station is not connected right now. Please try again in a moment.',
 }
 
 const nl: Translations = {
@@ -668,6 +670,7 @@ const nl: Translations = {
   'admin.released': '{slot} is weer vrijgegeven.',
   'admin.noBlocked': 'Geen geblokkeerde boxen.',
   'slot.boxState': 'Box: {state}',
+  'error.offline': 'Het station is op dit moment niet verbonden. Probeer het zo meteen opnieuw.',
 }
 
 export type Language = 'de' | 'en' | 'nl'

@@ -27,6 +27,7 @@ const stateClass: Record<BoxState, string> = {
 function errorKey(error: unknown): TranslationKey {
   if (!(error instanceof ApiError)) return 'error.generic'
   if (error.problemType === 'AlreadyHasBox') return 'error.alreadyHasBox'
+  if (error.problemType === 'Offline') return 'error.offline'
   if (error.status === 403) return 'error.notAllowed'
   if (error.status === 409) return 'error.wrongState'
   return 'error.generic'

@@ -77,6 +77,8 @@ namespace bikestation.Controllers
                 title: "Das ist nicht deine Box.", type: "NotAllowed"),
             BoxActionResult.AlreadyHasBox => Problem(statusCode: StatusCodes.Status409Conflict,
                 title: "Du hast bereits eine Box.", type: "AlreadyHasBox"),
+            BoxActionResult.Offline => Problem(statusCode: StatusCodes.Status409Conflict,
+                title: "Die Station ist gerade nicht verbunden.", type: "Offline"),
             _ => Problem(statusCode: StatusCodes.Status409Conflict,
                 title: "Die Box ist gerade nicht in dem passenden Zustand.", type: "WrongState"),
         };

@@ -12,7 +12,8 @@ namespace bikestation.Services
         NotFound,
         NotAllowed,       // Box gehört einem anderen Nutzer
         WrongState,       // Aktion passt nicht zum aktuellen Zustand
-        AlreadyHasBox     // Nutzer hat bereits eine aktive Box
+        AlreadyHasBox,    // Nutzer hat bereits eine aktive Box
+        Offline           // Station meldet sich nicht – der Riegel könnte nicht öffnen
     }
 
     // Zustandsmaschine der abschließbaren Boxen:
@@ -22,6 +23,7 @@ namespace bikestation.Services
     public class BoxService(
         BikestationDbContext db,
         IOptions<BoxOptions> options,
+        IOptions<DeviceOptions> deviceOptions,
         ILogger<BoxService> logger)
     {
         // Alle Zustandswechsel nacheinander, damit z. B. zwei Nutzer nicht gleichzeitig dieselbe Box buchen
@@ -46,6 +48,7 @@ namespace bikestation.Services
             if (slot is null) return BoxActionResult.NotFound;
             if (await ActiveParkingOfUserAsync(userId) is not null) return BoxActionResult.AlreadyHasBox;
             if (slot.BoxState != BoxState.Free) return BoxActionResult.WrongState;
+            if (!IsOnline(slot)) return BoxActionResult.Offline;
 
             var now = DateTime.UtcNow;
             var parking = new Parking { SlotId = slot.Id, UserId = userId, BookedAt = now };
@@ -75,6 +78,7 @@ namespace bikestation.Services
             var (slot, parking, result) = await OwnedBoxAsync(userId, slotId);
             if (result != BoxActionResult.Ok) return result;
             if (slot!.BoxState != BoxState.Locked) return BoxActionResult.WrongState;
+            if (!IsOnline(slot)) return BoxActionResult.Offline;
 
             var now = DateTime.UtcNow;
             parking!.PickupRequestedAt = now;
@@ -165,6 +169,9 @@ namespace bikestation.Services
         });
 
         // ---------- Hilfen ----------
+
+        private bool IsOnline(Slot slot) =>
+            slot.LastUpdated is DateTime last && last >= DateTime.UtcNow.AddSeconds(-deviceOptions.Value.OfflineAfterSeconds);
 
         public async Task<Parking?> ActiveParkingOfUserAsync(int userId) =>
             await db.Parkings.Where(p => p.UserId == userId && p.EndedAt == null).OrderByDescending(p => p.Id).FirstOrDefaultAsync();
