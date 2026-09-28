@@ -10,12 +10,22 @@
 #include <HTTPClient.h>
 #include "config.h"
 
-// ---------- Pins laut Projektplan – auf der echten Platine prüfen! ----------
-const int PIN_PRESSURE = 34;    // SEN0616 analog. GPIO34 = ADC1, funktioniert auch bei aktivem WLAN
-const int PIN_ULTRASONIC = 27;  // Grove Ultrasonic SIG (ein Pin für Trigger und Echo)
-const int PIN_VIBRATION = 26;   // Vibrationssensor digitaler Ausgang
-const int PIN_LED_GREEN = 25;   // grün = frei
-const int PIN_LED_RED = 33;     // rot = belegt
+// ---------- Pins: Standard laut Projektplan, in config.h überschreibbar ----------
+#ifndef PIN_PRESSURE
+#define PIN_PRESSURE 34    // SEN0616 analog. Muss ein ADC1-Pin sein (32–39), ADC2 geht nicht mit WLAN
+#endif
+#ifndef PIN_ULTRASONIC
+#define PIN_ULTRASONIC 27  // Grove Ultrasonic SIG (ein Pin für Trigger und Echo)
+#endif
+#ifndef PIN_VIBRATION
+#define PIN_VIBRATION 26   // Vibrationssensor digitaler Ausgang
+#endif
+#ifndef PIN_LED_GREEN
+#define PIN_LED_GREEN 25   // grün = frei
+#endif
+#ifndef PIN_LED_RED
+#define PIN_LED_RED 33     // rot = belegt
+#endif
 
 // ---------- Zeiten ----------
 const unsigned long MEASURE_INTERVAL_MS = 500;   // so oft wird gemessen

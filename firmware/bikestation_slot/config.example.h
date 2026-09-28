@@ -18,6 +18,13 @@
 // Muss mit Devices:ApiKey der API übereinstimmen (Server: siehe config.ps1 im Server-Ordner)
 #define API_KEY "dev-geraete-key-nur-lokal"
 
+// ---------- Pins (nur eintragen, wenn anders verdrahtet als im Projektplan) ----------
+// #define PIN_PRESSURE 34      // SEN0616 analog, nur ADC1-Pins 32–39
+// #define PIN_ULTRASONIC 27    // Grove Ultrasonic SIG (gelbes Kabel)
+// #define PIN_VIBRATION 26
+// #define PIN_LED_GREEN 25
+// #define PIN_LED_RED 33
+
 // ---------- Sensoren ----------
 // ANNAHME: Startwert. Mit dem seriellen Monitor die echten Werte ablesen (frei / mit Fahrrad)
 // und einen Wert dazwischen wählen. Sollte zu Occupancy:PressureThreshold der API passen.
