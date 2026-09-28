@@ -61,6 +61,20 @@ namespace bikestation.Tests
             Assert.False(string.IsNullOrEmpty(body.GetProperty("token").GetString()));
         }
 
+        [Fact]
+        public async Task Nutzer_bleiben_laenger_angemeldet_als_Admins()
+        {
+            var user = await _app.CreateClient().PostAsJsonAsync("/api/auth/register", new { username = "anna", password = "sicheres-passwort" });
+            var userExpires = (await user.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("expiresAt").GetDateTime();
+            await _app.AdminClientAsync();
+            var admin = await _app.CreateClient().PostAsJsonAsync("/api/auth/login",
+                new { username = BikestationApp.AdminUser, password = BikestationApp.AdminPassword });
+            var adminExpires = (await admin.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("expiresAt").GetDateTime();
+
+            Assert.True(userExpires > DateTime.UtcNow.AddHours(11), "Nutzer: ca. 12 Stunden");
+            Assert.True(adminExpires < DateTime.UtcNow.AddMinutes(61), "Admin: 60 Minuten");
+        }
+
         [Theory]
         [InlineData("ab", "sicheres-passwort")]          // Name zu kurz
         [InlineData("anna mit leerzeichen", "sicheres-passwort")]

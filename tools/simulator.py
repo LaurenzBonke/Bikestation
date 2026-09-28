@@ -22,7 +22,8 @@ import urllib.request
 
 # ANNAHME: typische Rohwerte – an die echten Sensoren anpassen, sobald kalibriert
 FREE_PRESSURE, OCCUPIED_PRESSURE = 40, 850
-FREE_DISTANCE, OCCUPIED_DISTANCE = 80, 28
+# Box-Konzept: Fahrrad steht direkt vor dem Ultraschallsensor (<= 5 cm, siehe Box:BikePresentMaxDistanceCm)
+FREE_DISTANCE, OCCUPIED_DISTANCE = 80, 3
 
 
 class SimulatedSlot:
@@ -38,7 +39,7 @@ class SimulatedSlot:
             self.start_tamper()
 
         pressure = random.gauss(OCCUPIED_PRESSURE if self.occupied else FREE_PRESSURE, 20)
-        distance = random.gauss(OCCUPIED_DISTANCE if self.occupied else FREE_DISTANCE, 1.5)
+        distance = random.gauss(OCCUPIED_DISTANCE, 0.5) if self.occupied else random.gauss(FREE_DISTANCE, 1.5)
         vibration = False
 
         if self.tamper_ticks > 0:

@@ -80,7 +80,8 @@ namespace bikestation.Services
 
         private LoginResponse CreateToken(User user)
         {
-            var expiresAt = DateTime.UtcNow.AddMinutes(_options.ExpiresMinutes);
+            var minutes = user.Role == UserRole.Admin ? _options.ExpiresMinutes : _options.UserExpiresMinutes;
+            var expiresAt = DateTime.UtcNow.AddMinutes(minutes);
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));
 
             var token = new JwtSecurityToken(
