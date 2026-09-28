@@ -5,12 +5,14 @@ import SlotList from './SlotList'
 import AlertsPanel from './AlertsPanel'
 import ForecastPanel from './ForecastPanel'
 import { displayStatus } from '../slotStatus'
+import { useI18n } from '../i18n'
 
 type DashboardProps = {
   data: StationData
 }
 
 export default function Dashboard({ data }: DashboardProps) {
+  const { t, locale } = useI18n()
   const { slots, alerts, connected, loading, lastFetched } = data
   const free = slots.filter((slot) => displayStatus(slot) === 'free').length
   const occupied = slots.filter((slot) => displayStatus(slot) === 'taken').length
@@ -21,52 +23,52 @@ export default function Dashboard({ data }: DashboardProps) {
       <section className="intro-row">
         <div>
           <p className="eyebrow">
-            <span className="eyebrow-line" aria-hidden="true"></span> SMART BIKESTATION
+            <span className="eyebrow-line" aria-hidden="true"></span> {t('dash.eyebrow')}
           </p>
-          <h1>Freien Stellplatz finden.</h1>
-          <p className="intro-copy">Live-Belegung der Station – bevor du ankommst.</p>
+          <h1>{t('dash.title')}</h1>
+          <p className="intro-copy">{t('dash.intro')}</p>
         </div>
         <p className="last-update">
-          Zuletzt aktualisiert: <strong>{formatTime(lastFetched)}</strong>
+          {t('dash.lastUpdate')} <strong>{formatTime(lastFetched, locale)}</strong>
         </p>
       </section>
 
       {!connected && (
         <p className="error-notice" role="alert">
-          Keine Verbindung zur API. Die angezeigten Daten sind eventuell veraltet. Läuft das Backend auf Port 5137?
+          {t('dash.noConnection')}
         </p>
       )}
 
-      <section className="dashboard-grid" aria-label="Belegung der Station">
+      <section className="dashboard-grid" aria-label={t('dash.stationAria')}>
         <div className="availability-panel">
           <div className="panel-heading">
             <div>
-              <p className="section-kicker">JETZT</p>
-              <h2>Verfügbare Stellplätze</h2>
+              <p className="section-kicker">{t('dash.now')}</p>
+              <h2>{t('dash.available')}</h2>
             </div>
             <span className="live-label">
-              <span aria-hidden="true"></span> Aktualisierung alle 3 s
+              <span aria-hidden="true"></span> {t('dash.refresh')}
             </span>
           </div>
 
           {loading ? (
-            <p className="loading-text">Daten werden geladen …</p>
+            <p className="loading-text">{t('dash.loading')}</p>
           ) : (
             <>
               <div className="availability-summary">
                 <div className="count-block" aria-live="polite">
                   <span className="available-count">{free}</span>
                   <span className="count-total">
-                    von {slots.length}
+                    {t('dash.of', { total: slots.length })}
                     <br />
-                    Plätzen frei
+                    {t('dash.spotsFree')}
                   </span>
                 </div>
                 <OccupancyFrame slots={slots} />
               </div>
               <p className="summary-line">
-                {free} frei · {occupied} belegt
-                {offline > 0 && ` · ${offline} offline / ohne Daten`}
+                {t('dash.summary', { free, taken: occupied })}
+                {offline > 0 && t('dash.summaryOffline', { offline })}
               </p>
 
               <div className="divider"></div>
@@ -76,15 +78,15 @@ export default function Dashboard({ data }: DashboardProps) {
         </div>
 
         <div className="side-column">
-          <AlertsPanel alerts={alerts} slots={slots} />
+          <AlertsPanel alerts={alerts} />
           <ForecastPanel />
         </div>
       </section>
 
       <footer className="page-footer">
-        <span>Smart Bikestation – Schulprojekt-Prototyp</span>
+        <span>{t('dash.footer')}</span>
         <span>
-          Keine Kameras, keine personenbezogenen Daten <span className="footer-star" aria-hidden="true">✳</span>
+          {t('dash.privacy')} <span className="footer-star" aria-hidden="true">✳</span>
         </span>
       </footer>
     </main>

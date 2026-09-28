@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type LoginResponse } from './api'
+import type { TranslationKey } from './i18n'
 
 // sessionStorage: Login bleibt beim Neuladen erhalten, ist aber weg, sobald der Tab geschlossen wird
 const STORAGE_KEY = 'bikestation-auth'
@@ -7,8 +8,9 @@ const STORAGE_KEY = 'bikestation-auth'
 export type Auth = {
   session: LoginResponse | null
   login: (username: string, password: string) => Promise<void>
-  logout: (reason?: string) => void
-  logoutReason: string
+  logout: (reason?: TranslationKey) => void
+  // Übersetzungsschlüssel, warum abgemeldet wurde (z. B. Sitzung abgelaufen)
+  logoutReason: TranslationKey | null
 }
 
 function loadSession(): LoginResponse | null {
@@ -33,25 +35,25 @@ function saveSession(session: LoginResponse | null) {
 
 export function useAuth(): Auth {
   const [session, setSession] = useState<LoginResponse | null>(loadSession)
-  const [logoutReason, setLogoutReason] = useState('')
+  const [logoutReason, setLogoutReason] = useState<TranslationKey | null>(null)
 
-  const logout = useCallback((reason = '') => {
+  const logout = useCallback((reason?: TranslationKey) => {
     saveSession(null)
     setSession(null)
-    setLogoutReason(reason)
+    setLogoutReason(reason ?? null)
   }, [])
 
   const login = useCallback(async (username: string, password: string) => {
     const result = await api.login(username, password)
     saveSession(result)
     setSession(result)
-    setLogoutReason('')
+    setLogoutReason(null)
   }, [])
 
   // Gespeicherten Token beim Start einmal vom Backend prüfen lassen
   useEffect(() => {
     if (!session) return
-    api.getMe(session.token).catch(() => logout('Deine Sitzung ist abgelaufen. Bitte erneut anmelden.'))
+    api.getMe(session.token).catch(() => logout('login.expired'))
   }, []) // nur beim Start
 
   // Automatisch abmelden, wenn der Token abläuft
@@ -59,7 +61,7 @@ export function useAuth(): Auth {
     if (!session) return
     const msLeft = new Date(session.expiresAt).getTime() - Date.now()
     const timer = window.setTimeout(
-      () => logout('Deine Sitzung ist abgelaufen. Bitte erneut anmelden.'),
+      () => logout('login.expired'),
       Math.max(msLeft, 0),
     )
     return () => window.clearTimeout(timer)

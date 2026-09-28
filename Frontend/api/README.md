@@ -38,6 +38,15 @@ Unter `#admin` (Link „Admin“ oben) können angemeldete Admins Meldungen als 
 Der Login liefert einen JWT, der 60 Minuten gilt und nur im `sessionStorage` des Tabs liegt.
 Einen Admin legt man im Backend an (siehe `api/bikestation/README.md`).
 
+## Sprachen und Darstellung
+
+- **Sprachen:** Deutsch, Englisch, Niederländisch – Auswahl oben rechts, wird im Browser gespeichert.
+  Beim ersten Besuch wird die Browsersprache verwendet. Alle Texte stehen in `src/i18n.tsx`;
+  TypeScript prüft, dass jede Sprache dieselben Schlüssel hat.
+  Meldungen aus dem Backend (z. B. KI-Begründungen) werden im Frontend übersetzt (`src/slotStatus.ts`).
+- **Darstellung:** System / Hell / Dunkel. „System“ folgt der Geräteeinstellung.
+  Alle Farben sind CSS-Variablen in `src/style.css` mit einem eigenen, kontrastgeprüften Dunkel-Satz.
+
 ## Aufbau
 
 | Datei | Aufgabe |
@@ -50,6 +59,8 @@ Einen Admin legt man im Backend an (siehe `api/bikestation/README.md`).
 | `src/components/StatisticsPage.tsx` | Statistik: Auslastung nach Uhrzeit, je Platz, Ereignisse |
 | `src/components/AdminPage.tsx` | Admin-Login, Meldungen bearbeiten, Demo-Daten |
 | `src/useAuth.ts` | Login, Token-Speicherung, automatisches Abmelden |
+| `src/i18n.tsx` | Übersetzungen (de/en/nl) und Sprachauswahl |
+| `src/useTheme.ts` | Hell-/Dunkelmodus |
 
 ## Barrierefreiheit
 
