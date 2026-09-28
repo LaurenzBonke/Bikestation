@@ -1,6 +1,44 @@
 @bikestation_HostAddress = http://localhost:5137
 
-GET {{bikestation_HostAddress}}/weatherforecast/
+### Alle Slots
+GET {{bikestation_HostAddress}}/api/slots
 Accept: application/json
+
+### Einzelner Slot
+GET {{bikestation_HostAddress}}/api/slots/2
+Accept: application/json
+
+### Messverlauf eines Slots
+GET {{bikestation_HostAddress}}/api/slots/2/readings?limit=20
+Accept: application/json
+
+### ESP32 meldet: Fahrrad steht auf Slot 2
+POST {{bikestation_HostAddress}}/api/sensor-data
+Content-Type: application/json
+
+{
+  "slotId": 2,
+  "pressure": 842,
+  "distance": 27,
+  "vibration": false
+}
+
+### ESP32 meldet: Vibration auf Slot 2
+POST {{bikestation_HostAddress}}/api/sensor-data
+Content-Type: application/json
+
+{
+  "slotId": 2,
+  "pressure": 842,
+  "distance": 27,
+  "vibration": true
+}
+
+### Offene Alerts
+GET {{bikestation_HostAddress}}/api/alerts
+Accept: application/json
+
+### Alert als erledigt markieren
+POST {{bikestation_HostAddress}}/api/alerts/1/resolve
 
 ###
