@@ -33,13 +33,15 @@ Danach das Passwort eingeben (mind. 12 Zeichen). Gespeichert wird nur der Hash.
 | GET | `/api/slots/{id}` | – | Ein Stellplatz |
 | GET | `/api/slots/{id}/readings` | – | Messverlauf eines Platzes |
 | GET | `/api/sensor-readings?afterId=` | – | Messwerte aller Plätze (für den KI-Dienst) |
-| GET | `/api/statistics?days=7` | – | Auslastung nach Uhrzeit, je Platz, Ereignisse |
+| GET | `/api/statistics?days=7` | – | Auslastung nach Uhrzeit, pro Tag, je Platz, Ereignisse |
+| GET | `/api/forecast?hours=6` | – | Auslastungsprognose der nächsten Stunden |
+| GET | `/api/health` | – | Läuft die API, ist die Datenbank erreichbar? |
 | GET | `/api/alerts` | – | Offene Meldungen |
-| POST | `/api/alerts/{id}/resolve` | JWT | Meldung als erledigt markieren |
+| POST | `/api/alerts/{id}/resolve` | JWT (Admin) | Meldung als erledigt markieren |
 | POST | `/api/anomalies` | API-Key | KI-Dienst meldet Anomalie |
 | POST | `/api/auth/login` | – | Login, liefert JWT (max. 5 Versuche/Minute) |
 | GET | `/api/auth/me` | JWT | Token prüfen |
-| POST | `/api/demo/generate?days=7` | JWT | Demo-Daten erzeugen (nur Development) |
+| POST | `/api/demo/generate?days=7` | JWT (Admin) | Demo-Daten erzeugen (Development oder `Demo:Enabled`) |
 
 - **API-Key:** Header `X-Api-Key: <Devices:ApiKey>` – für Geräte (ESP32, KI-Dienst)
 - **JWT:** Header `Authorization: Bearer <token>` – für Admins im Dashboard
@@ -54,6 +56,10 @@ Danach das Passwort eingeben (mind. 12 Zeichen). Gespeichert wird nur der Hash.
 | `Devices:ApiKey` | – | Schlüssel für ESP32 und KI-Dienst (mind. 16 Zeichen) |
 | `Devices:OfflineAfterSeconds` | 30 | Ohne Meldung so lange → Platz „Offline“ |
 | `Jwt:Key` | – | Signaturschlüssel für JWT (mind. 32 Zeichen) |
+| `Anomaly:Enabled` | true | Eingebaute statistische Anomalieerkennung |
+| `Anomaly:ZThreshold` | 6 | Ab dieser Abweichung (robuster Z-Score) wird gemeldet |
+| `Retention:ReadingDays` | 90 | Messwerte älter als das werden täglich gelöscht (0 = nie) |
+| `Demo:Enabled` | false | Demo-Daten-Button auch außerhalb von Development erlauben |
 | `Cors:AllowedOrigins` | localhost:5173 | Erlaubte Frontend-Adressen |
 
 `appsettings.Development.json` enthält nur Entwicklungs-Schlüssel. **Auf dem Raspberry Pi** eigene,
@@ -71,3 +77,12 @@ Passt eine vorhandene Datei nicht mehr zum Datenmodell (z. B. nach einem `git pu
 Development-Modus automatisch als `bikestation.db.veraltet-<Datum>` gesichert und neu angelegt –
 im Log steht dann eine Warnung. **Danach den Admin neu anlegen.** Die endgültige Datenbank kommt später auf eine Proxmox-VM –
 dann auf EF-Core-Migrations umstellen.
+
+## Tests
+
+```powershell
+dotnet test
+```
+
+Integrationstests (echte API + eigene SQLite-Datei pro Test) und Unit-Tests der Anomalieerkennung
+liegen in `bikestation.Tests`. Architektur, ER-Diagramm und Abläufe: [docs/ARCHITEKTUR.md](../../docs/ARCHITEKTUR.md).

@@ -21,7 +21,7 @@ namespace bikestation.Controllers
 
         // Nur für angemeldete Admins (JWT im Authorization-Header)
         [HttpPost("{id:int}/resolve")]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

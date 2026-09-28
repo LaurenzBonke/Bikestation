@@ -74,6 +74,15 @@ namespace bikestation.Services
                 }
             }
 
+            // Stellplätze auf den letzten erzeugten Messwert setzen, damit sie nicht "Keine Daten" zeigen
+            foreach (var slot in db.Slots.ToList())
+            {
+                var last = db.SensorReadings.Local.Where(r => r.SlotId == slot.Id).MaxBy(r => r.Timestamp);
+                if (last is null || (slot.LastUpdated ?? DateTime.MinValue) > last.Timestamp) continue;
+                slot.Status = last.Occupied ? SlotStatus.Occupied : SlotStatus.Free;
+                slot.LastUpdated = last.Timestamp;
+            }
+
             await db.SaveChangesAsync();
             return count;
         }

@@ -441,3 +441,26 @@ main:focus { outline: none; }
   .data-table { font-size: 13px; }
   .data-table th, .data-table td { padding: 8px 5px; }
 }
+
+/* ---------- Prognose ---------- */
+
+.side-column { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.forecast-panel { padding: 22px 23px 20px; border: 1px solid #e5e9e3; border-radius: 9px; background: #fff; box-shadow: 0 8px 28px #26352d08; }
+
+.forecast-list { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 12px; padding: 0; list-style: none; }
+
+.forecast-item { display: grid; grid-template-columns: 48px minmax(40px, 1fr) auto; align-items: center; gap: 10px; font-size: 14px; }
+
+.forecast-hour { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.forecast-bar { height: 8px; border-radius: 4px; background: #edf0eb; overflow: hidden; }
+
+.forecast-bar span { display: block; height: 100%; border-radius: 4px; background: #2a8a57; }
+
+.forecast-value { color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .side-column { gap: 14px; }
+  .forecast-panel { padding: 19px 20px; }
+}

@@ -3,6 +3,7 @@ import { formatTime } from '../format'
 import OccupancyFrame from './OccupancyFrame'
 import SlotList from './SlotList'
 import AlertsPanel from './AlertsPanel'
+import ForecastPanel from './ForecastPanel'
 import { displayStatus } from '../slotStatus'
 
 type DashboardProps = {
@@ -74,7 +75,10 @@ export default function Dashboard({ data }: DashboardProps) {
           )}
         </div>
 
-        <AlertsPanel alerts={alerts} slots={slots} />
+        <div className="side-column">
+          <AlertsPanel alerts={alerts} slots={slots} />
+          <ForecastPanel />
+        </div>
       </section>
 
       <footer className="page-footer">

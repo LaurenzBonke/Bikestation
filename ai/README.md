@@ -1,5 +1,9 @@
 # Smart Bikestation – KI-Anomalieerkennung
 
+> Das Backend hat zusätzlich eine eingebaute, statistisch lernende Anomalieerkennung
+> (robuster Z-Score, siehe `docs/ARCHITEKTUR.md`), die ohne Python läuft. Dieser Dienst ist die
+> erweiterte Variante mit Machine Learning und kann parallel laufen.
+
 Python-Dienst, der aus den gespeicherten Sensordaten lernt, wie normales Verhalten an den
 Stellplätzen aussieht, und ungewöhnliche Messungen als Anomalie an die API meldet.
 
