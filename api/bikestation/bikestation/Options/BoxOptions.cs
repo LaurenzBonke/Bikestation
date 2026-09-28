@@ -6,7 +6,7 @@ namespace bikestation.Options
         public const string SectionName = "Box";
 
         // Fahrrad gilt als "da", wenn der Ultraschallsensor höchstens so weit misst (cm)
-        public int BikePresentMaxDistanceCm { get; set; } = 5;
+        public int BikePresentMaxDistanceCm { get; set; } = 7;
 
         // So lange muss das Fahrrad ununterbrochen erkannt werden, bevor die Box verriegelt
         public int ParkConfirmSeconds { get; set; } = 5;
