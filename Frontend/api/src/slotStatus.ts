@@ -5,10 +5,12 @@ type Translate = ReturnType<typeof useI18n>['t']
 
 export type DisplayStatus = 'free' | 'taken' | 'offline' | 'unknown'
 
-// Ein Platz, dessen ESP32 sich nicht mehr meldet, zählt weder als frei noch als belegt
+// Frei heißt: die Box ist buchbar (leer, geschlossen, Station verbunden). Eine gebuchte Box, die offen auf
+// ihr Fahrrad wartet, ist laut Sensor zwar leer, aber nicht mehr frei. Ohne Verbindung: weder frei noch belegt.
 export function displayStatus(slot: Slot): DisplayStatus {
   if (slot.status === 'Unknown') return 'unknown'
   if (!slot.isOnline) return 'offline'
+  if (slot.boxState !== 'Free') return 'taken'
   return slot.status === 'Free' ? 'free' : 'taken'
 }
 

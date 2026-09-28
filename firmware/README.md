@@ -86,7 +86,18 @@ Wird gar nichts angezeigt: anderes USB-Kabel testen – viele Kabel können nur 
 
 ## Verhalten
 
-- Misst alle 0,5 s, die LED reagiert sofort (auch ohne WLAN).
-- Sendet sofort bei Wechsel frei/belegt oder bei Vibration, sonst alle 5 s als Lebenszeichen.
-  Meldet ein ESP32 länger als 30 s nicht, zeigt das Dashboard den Platz als „Offline“.
+- Misst alle 0,5 s. Sendet sofort, wenn ein Fahrrad kommt oder geht oder Vibration erkannt wird,
+  sonst alle 2 s (solange die Box offen ist: jede Sekunde, damit der Riegel zügig reagiert).
+  Meldet ein ESP32 länger als 30 s nicht, zeigt das Dashboard die Box als „Offline“.
+- Die API antwortet mit dem Zustand der Box. Danach richten sich die LEDs:
+
+  | LED | Bedeutung |
+  |---|---|
+  | grün | Box frei |
+  | grün blinkend | Box offen – Fahrrad einstellen bzw. abholen |
+  | rot | Box verriegelt (oder nach Alarm gesperrt) |
+  | rot blinkend | noch keine Verbindung zur API |
+
+- Optional steuert die Firmware einen **Servo-Riegel** (`PIN_SERVO` in `config.h`). Ohne `PIN_SERVO`
+  übernimmt der Raspberry Pi den Riegel (siehe `pi/`).
 - Verbindet sich bei WLAN-Abbruch automatisch neu.
