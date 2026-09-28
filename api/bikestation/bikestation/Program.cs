@@ -91,12 +91,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Legt die SQLite-Datei samt Tabellen und den 3 Slots beim ersten Start an.
-// Hinweis: Bei Änderungen am Datenmodell die .db-Datei löschen (bis wir auf Migrations umstellen).
-using (var scope = app.Services.CreateScope())
-{
-    scope.ServiceProvider.GetRequiredService<BikestationDbContext>().Database.EnsureCreated();
-}
+// Legt die SQLite-Datei samt Tabellen und den 3 Slots an und erkennt veraltete Datenbanken
+DatabaseInitializer.Initialize(app);
 
 // Admin anlegen statt Server starten: dotnet run -- create-admin <benutzername>
 if (args.Length > 0 && args[0] == "create-admin")

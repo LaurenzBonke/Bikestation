@@ -67,6 +67,7 @@ export Devices__ApiKey="$(openssl rand -hex 24)"
 ## Datenbank
 
 Aktuell SQLite (`bikestation.db`), wird beim Start automatisch angelegt.
-**Ändert sich das Datenmodell, die Datei `bikestation.db` löschen** und die API neu starten
-(danach Admin neu anlegen). Die endgültige Datenbank kommt später auf eine Proxmox-VM –
+Passt eine vorhandene Datei nicht mehr zum Datenmodell (z. B. nach einem `git pull`), wird sie im
+Development-Modus automatisch als `bikestation.db.veraltet-<Datum>` gesichert und neu angelegt –
+im Log steht dann eine Warnung. **Danach den Admin neu anlegen.** Die endgültige Datenbank kommt später auf eine Proxmox-VM –
 dann auf EF-Core-Migrations umstellen.
