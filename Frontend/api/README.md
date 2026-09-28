@@ -31,6 +31,12 @@ Alle Daten kommen aus der C#-API (`api/bikestation`). Eine eigene Datenbank hat 
    $env:API_URL = "http://192.168.0.50:5137"; npm run dev
    ```
 
+## Admin-Bereich
+
+Unter `#admin` (Link „Admin“ oben) können angemeldete Admins Meldungen als erledigt markieren.
+Der Login liefert einen JWT, der 60 Minuten gilt und nur im `sessionStorage` des Tabs liegt.
+Einen Admin legt man im Backend an (siehe `api/bikestation/README.md`).
+
 ## Aufbau
 
 | Datei | Aufgabe |
@@ -40,6 +46,8 @@ Alle Daten kommen aus der C#-API (`api/bikestation`). Eine eigene Datenbank hat 
 | `src/components/Dashboard.tsx` | Übersicht: freie Plätze, Stationsgrafik |
 | `src/components/SlotList.tsx` | Liste der Stellplätze mit Sensorwerten |
 | `src/components/AlertsPanel.tsx` | Offene Meldungen |
+| `src/components/AdminPage.tsx` | Admin-Login und Meldungen bearbeiten |
+| `src/useAuth.ts` | Login, Token-Speicherung, automatisches Abmelden |
 
 ## Barrierefreiheit
 

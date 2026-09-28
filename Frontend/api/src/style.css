@@ -329,3 +329,11 @@ h2 { margin: 7px 0 0; color: var(--ink); font: 600 20px/1.25 'Space Grotesk', sa
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- Hilfsklassen ---------- */
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.save-message { min-height: 20px; margin: 10px 0 0; color: var(--green); font-size: 14px; font-weight: 600; }
+
+main:focus { outline: none; }

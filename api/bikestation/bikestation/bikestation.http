@@ -38,7 +38,22 @@ Content-Type: application/json
 GET {{bikestation_HostAddress}}/api/alerts
 Accept: application/json
 
-### Alert als erledigt markieren
+### Admin-Login (Admin vorher anlegen: dotnet run -- create-admin <name>)
+# @name login
+POST {{bikestation_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "HIER-PASSWORT-EINTRAGEN"
+}
+
+### Token prüfen
+GET {{bikestation_HostAddress}}/api/auth/me
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Alert als erledigt markieren (nur mit Token)
 POST {{bikestation_HostAddress}}/api/alerts/1/resolve
+Authorization: Bearer {{login.response.body.$.token}}
 
 ###

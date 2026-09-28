@@ -14,7 +14,7 @@ export default function Dashboard({ data }: DashboardProps) {
   const occupied = slots.filter((slot) => slot.status === 'Occupied').length
 
   return (
-    <main id="main" className="page-shell">
+    <main id="main" className="page-shell" tabIndex={-1}>
       <section className="intro-row">
         <div>
           <p className="eyebrow">

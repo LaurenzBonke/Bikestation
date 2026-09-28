@@ -1,8 +1,11 @@
+import type { Route } from '../useRoute'
+
 type HeaderProps = {
   connected: boolean
+  route: Route
 }
 
-export default function Header({ connected }: HeaderProps) {
+export default function Header({ connected, route }: HeaderProps) {
   return (
     <header className="topbar">
       <a className="brand" href="#" aria-label="Smart Bikestation Startseite">
@@ -18,8 +21,19 @@ export default function Header({ connected }: HeaderProps) {
         </span>
       </a>
       <nav className="top-nav" aria-label="Hauptnavigation">
-        <a className="nav-link active" href="#" aria-current="page">
+        <a
+          className={`nav-link ${route === 'overview' ? 'active' : ''}`}
+          href="#"
+          aria-current={route === 'overview' ? 'page' : undefined}
+        >
           Übersicht
+        </a>
+        <a
+          className={`nav-link ${route === 'admin' ? 'active' : ''}`}
+          href="#admin"
+          aria-current={route === 'admin' ? 'page' : undefined}
+        >
+          Admin
         </a>
       </nav>
       <div className={`topbar-note ${connected ? '' : 'is-offline'}`} role="status">

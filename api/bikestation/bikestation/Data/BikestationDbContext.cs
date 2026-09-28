@@ -9,6 +9,7 @@ namespace bikestation.Data
         public DbSet<Slot> Slots => Set<Slot>();
         public DbSet<SensorReading> SensorReadings => Set<SensorReading>();
         public DbSet<Alert> Alerts => Set<Alert>();
+        public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
 
         // SQLite speichert keine Zeitzone – beim Lesen alle DateTime-Werte als UTC markieren,
         // damit die API "...Z" ausgibt und das Frontend korrekt umrechnet
@@ -30,6 +31,7 @@ namespace bikestation.Data
 
             modelBuilder.Entity<SensorReading>().HasIndex(r => new { r.SlotId, r.Timestamp });
             modelBuilder.Entity<Alert>().HasIndex(a => new { a.SlotId, a.Timestamp });
+            modelBuilder.Entity<AdminUser>().HasIndex(u => u.Username).IsUnique();
 
             // Die 3 Stellplätze des Prototyps
             modelBuilder.Entity<Slot>().HasData(

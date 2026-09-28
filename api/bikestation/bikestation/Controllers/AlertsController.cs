@@ -1,5 +1,6 @@
 using bikestation.Dtos;
 using bikestation.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace bikestation.Controllers
@@ -18,8 +19,11 @@ namespace bikestation.Controllers
             return await alertService.GetAsync(slotId, includeResolved, Math.Clamp(limit, 1, 500));
         }
 
+        // Nur für angemeldete Admins (JWT im Authorization-Header)
         [HttpPost("{id:int}/resolve")]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Resolve(int id)
         {
