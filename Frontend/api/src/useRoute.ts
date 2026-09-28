@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 
-export type Route = 'overview' | 'statistics' | 'admin'
+export type Route = 'overview' | 'boxes' | 'account' | 'statistics' | 'admin'
 
 function currentRoute(): Route {
   const hash = window.location.hash
   if (hash.startsWith('#admin')) return 'admin'
   if (hash.startsWith('#statistik')) return 'statistics'
+  if (hash.startsWith('#boxen')) return 'boxes'
+  if (hash.startsWith('#konto')) return 'account'
   return 'overview'
 }
 

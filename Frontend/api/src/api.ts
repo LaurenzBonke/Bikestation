@@ -17,6 +17,7 @@ export type Slot = {
   statusText: string
   lastUpdated: string | null
   isOnline: boolean
+  boxState: BoxState
   possibleTampering: boolean
   hasAnomaly: boolean
   latestReading: SensorReading | null
@@ -27,7 +28,7 @@ export type AlertSeverity = 'Info' | 'Warning' | 'Critical'
 export type Alert = {
   id: number
   slotId: number
-  type: 'PossibleTampering' | 'SensorMismatch' | 'Anomaly'
+  type: 'PossibleTampering' | 'SensorMismatch' | 'Anomaly' | 'BikeRemoved'
   severity: AlertSeverity
   message: string
   timestamp: string
@@ -84,43 +85,91 @@ export type Statistics = {
   slots: SlotStatistics[]
 }
 
+export type UserRole = 'User' | 'Admin'
+
 export type LoginResponse = {
   token: string
   expiresAt: string
   username: string
+  role: UserRole
+}
+
+export type BoxState = 'Free' | 'OpenForParking' | 'Locked' | 'OpenForPickup' | 'Blocked'
+
+export type Box = {
+  id: number
+  name: string
+  state: BoxState
+  lockOpen: boolean
+  bikeDetected: boolean
+  isOnline: boolean
+  isMine: boolean
+  stateChangedAt: string | null
+}
+
+export type MyParking = {
+  parkingId: number
+  slotId: number
+  state: BoxState
+  lockOpen: boolean
+  isOnline: boolean
+  bookedAt: string
+  parkedAt: string | null
+  pickupRequestedAt: string | null
+  deadlineAt: string | null
+}
+
+export type ParkingEndReason = 'Completed' | 'Cancelled' | 'TimedOut' | 'BikeRemoved'
+
+export type ParkingHistory = {
+  slotId: number
+  bookedAt: string
+  parkedAt: string | null
+  endedAt: string | null
+  endReason: ParkingEndReason | null
+}
+
+export type Me = {
+  id: number
+  username: string
+  role: UserRole
+  parking: MyParking | null
+  alerts: Alert[]
+  history: ParkingHistory[]
 }
 
 // Fehler mit HTTP-Status, damit z. B. 401 (Token abgelaufen) gezielt behandelt werden kann
 export class ApiError extends Error {
   readonly status: number
+  // "type" aus den ProblemDetails, z. B. "AlreadyHasBox" oder "WrongState"
+  readonly problemType: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, problemType = '') {
     super(message)
     this.status = status
+    this.problemType = problemType
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers)
   if (options.body) headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
   const response = await fetch(`/api${path}`, { ...options, headers })
   if (!response.ok) {
-    throw new ApiError(response.status, await errorMessage(response))
+    const problem = await readProblem(response)
+    throw new ApiError(response.status, problem.title ?? `API-Fehler ${response.status}`, problem.type ?? '')
   }
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
 }
 
-async function errorMessage(response: Response): Promise<string> {
-  if (response.status === 429) return 'Zu viele Versuche. Bitte eine Minute warten.'
+async function readProblem(response: Response): Promise<{ title?: string; type?: string }> {
   try {
-    const body = (await response.json()) as { title?: string }
-    if (body.title) return body.title
+    return (await response.json()) as { title?: string; type?: string }
   } catch {
-    // Antwort ohne JSON-Body
+    return {}
   }
-  return `API-Fehler ${response.status}`
 }
 
 export const api = {
@@ -131,7 +180,17 @@ export const api = {
 
   login: (username: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
-  getMe: (token: string) => request<{ username: string }>('/auth/me', {}, token),
+  register: (username: string, password: string) =>
+    request<LoginResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  getMe: (token: string) => request<{ id: number; username: string; role: UserRole }>('/auth/me', {}, token),
+  getMyStatus: (token: string, signal?: AbortSignal) => request<Me>('/me', { signal }, token),
+  ackAlert: (id: number, token: string) => request<void>(`/me/alerts/${id}/ack`, { method: 'POST' }, token),
+
+  getBoxes: (token: string | null, signal?: AbortSignal) => request<Box[]>('/boxes', { signal }, token),
+  bookBox: (id: number, token: string) => request<void>(`/boxes/${id}/book`, { method: 'POST' }, token),
+  cancelBox: (id: number, token: string) => request<void>(`/boxes/${id}/cancel`, { method: 'POST' }, token),
+  pickupBox: (id: number, token: string) => request<void>(`/boxes/${id}/pickup`, { method: 'POST' }, token),
+  releaseBox: (id: number, token: string) => request<void>(`/boxes/${id}/release`, { method: 'POST' }, token),
   resolveAlert: (id: number, token: string) => request<void>(`/alerts/${id}/resolve`, { method: 'POST' }, token),
   generateDemoData: (days: number, token: string) =>
     request<{ readings: number }>(`/demo/generate?days=${days}`, { method: 'POST' }, token),

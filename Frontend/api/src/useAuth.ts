@@ -8,6 +8,7 @@ const STORAGE_KEY = 'bikestation-auth'
 export type Auth = {
   session: LoginResponse | null
   login: (username: string, password: string) => Promise<void>
+  register: (username: string, password: string) => Promise<void>
   logout: (reason?: TranslationKey) => void
   // Übersetzungsschlüssel, warum abgemeldet wurde (z. B. Sitzung abgelaufen)
   logoutReason: TranslationKey | null
@@ -18,7 +19,7 @@ function loadSession(): LoginResponse | null {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const session = JSON.parse(raw) as LoginResponse
-    return new Date(session.expiresAt) > new Date() ? session : null
+    return new Date(session.expiresAt) > new Date() && session.role ? session : null
   } catch {
     return null
   }
@@ -43,12 +44,21 @@ export function useAuth(): Auth {
     setLogoutReason(reason ?? null)
   }, [])
 
-  const login = useCallback(async (username: string, password: string) => {
-    const result = await api.login(username, password)
+  const start = useCallback((result: LoginResponse) => {
     saveSession(result)
     setSession(result)
     setLogoutReason(null)
   }, [])
+
+  const login = useCallback(
+    async (username: string, password: string) => start(await api.login(username, password)),
+    [start],
+  )
+
+  const register = useCallback(
+    async (username: string, password: string) => start(await api.register(username, password)),
+    [start],
+  )
 
   // Gespeicherten Token beim Start einmal vom Backend prüfen lassen
   useEffect(() => {
@@ -67,5 +77,5 @@ export function useAuth(): Auth {
     return () => window.clearTimeout(timer)
   }, [session, logout])
 
-  return { session, login, logout, logoutReason }
+  return { session, login, register, logout, logoutReason }
 }

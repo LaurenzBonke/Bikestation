@@ -32,6 +32,7 @@ export default function SlotList({ slots }: { slots: Slot[] }) {
             <span className="spot-main">
               <span className="spot-name">{slotName(t, slot.id)}</span>
               <SensorValues slot={slot} />
+              <span className="sensor-values">{t('slot.boxState', { state: t(`state.${slot.boxState}`) })}</span>
             </span>
             <span className={`spot-status ${displayStatus(slot)}`}>
               <span aria-hidden="true"></span>

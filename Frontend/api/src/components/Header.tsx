@@ -1,16 +1,19 @@
 import type { Route } from '../useRoute'
 import { LANGUAGES, useI18n, type Language } from '../i18n'
 import { useTheme, type Theme } from '../useTheme'
+import type { Auth } from '../useAuth'
 
 type HeaderProps = {
   connected: boolean
   route: Route
+  auth: Auth
 }
 
 const THEMES: Theme[] = ['system', 'light', 'dark']
 const THEME_ICON: Record<Theme, string> = { system: '◐', light: '☀', dark: '☾' }
 
-export default function Header({ connected, route }: HeaderProps) {
+export default function Header({ connected, route, auth }: HeaderProps) {
+  const isAdmin = auth.session?.role === 'Admin'
   const { t, language, setLanguage } = useI18n()
   const [theme, setTheme] = useTheme()
 
@@ -37,21 +40,36 @@ export default function Header({ connected, route }: HeaderProps) {
           {t('nav.overview')}
         </a>
         <a
+          className={`nav-link ${route === 'boxes' ? 'active' : ''}`}
+          href="#boxen"
+          aria-current={route === 'boxes' ? 'page' : undefined}
+        >
+          {t('nav.boxes')}
+        </a>
+        <a
           className={`nav-link ${route === 'statistics' ? 'active' : ''}`}
           href="#statistik"
           aria-current={route === 'statistics' ? 'page' : undefined}
         >
           {t('nav.statistics')}
         </a>
-        <a
-          className={`nav-link ${route === 'admin' ? 'active' : ''}`}
-          href="#admin"
-          aria-current={route === 'admin' ? 'page' : undefined}
-        >
-          {t('nav.admin')}
-        </a>
+        {isAdmin && (
+          <a
+            className={`nav-link ${route === 'admin' ? 'active' : ''}`}
+            href="#admin"
+            aria-current={route === 'admin' ? 'page' : undefined}
+          >
+            {t('nav.admin')}
+          </a>
+        )}
       </nav>
       <div className="topbar-tools">
+        <a className={`account-link ${route === 'account' ? 'active' : ''}`} href="#konto">
+          <span className="account-avatar" aria-hidden="true">
+            {auth.session ? auth.session.username[0]?.toUpperCase() : '?'}
+          </span>
+          {auth.session ? auth.session.username : t('nav.login')}
+        </a>
         <div className={`topbar-note ${connected ? '' : 'is-offline'}`} role="status">
           <span className="status-dot" aria-hidden="true"></span>
           {connected ? t('nav.connected') : t('nav.disconnected')}

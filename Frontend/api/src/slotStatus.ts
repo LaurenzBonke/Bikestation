@@ -43,6 +43,8 @@ export function alertMessage(t: Translate, alert: Alert): string {
       return t('alert.tamper', { slot })
     case 'SensorMismatch':
       return t('alert.mismatch', { slot })
+    case 'BikeRemoved':
+      return t('alert.bikeRemoved', { slot })
     case 'Anomaly': {
       const match = alert.message.match(/\(([^()]*)\)\.?$/)
       if (!match) return t('alert.anomaly', { slot })

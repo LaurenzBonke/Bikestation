@@ -4,6 +4,7 @@ import type { Auth } from '../useAuth'
 import type { StationData } from '../useStationData'
 import { formatDateTime, formatNumber, formatTime } from '../format'
 import { alertMessage, slotName } from '../slotStatus'
+import { useBoxes } from '../useBoxes'
 import { useI18n, type TranslationKey } from '../i18n'
 
 type AdminPageProps = {
@@ -12,10 +13,69 @@ type AdminPageProps = {
 }
 
 export default function AdminPage({ auth, data }: AdminPageProps) {
+  const { t } = useI18n()
   return (
     <main id="main" className={`admin-shell ${auth.session ? '' : 'login-shell'}`} tabIndex={-1}>
-      {auth.session ? <AdminArea auth={auth} data={data} /> : <LoginForm auth={auth} />}
+      {!auth.session && <LoginForm auth={auth} />}
+      {auth.session && auth.session.role !== 'Admin' && (
+        <p className="error-notice" role="alert">
+          {t('admin.noPermission')}
+        </p>
+      )}
+      {auth.session?.role === 'Admin' && <AdminArea auth={auth} data={data} />}
     </main>
+  )
+}
+
+// Nach einem Alarm gesperrte Boxen: Admin prüft vor Ort und gibt sie hier wieder frei
+function BlockedBoxes({ auth }: { auth: Auth }) {
+  const { t } = useI18n()
+  const token = auth.session!.token
+  const { boxes, refresh } = useBoxes(token)
+  const [message, setMessage] = useState('')
+  const blocked = boxes.filter((b) => b.state === 'Blocked')
+
+  async function release(id: number) {
+    try {
+      await api.releaseBox(id, token)
+      setMessage(t('admin.released', { slot: slotName(t, id) }))
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) auth.logout('login.expired')
+      else setMessage(t('error.generic'))
+    } finally {
+      refresh()
+    }
+  }
+
+  return (
+    <section className="admin-panel admin-section" aria-labelledby="blocked-heading">
+      <p className="section-kicker">{t('admin.blockedKicker')}</p>
+      <h2 id="blocked-heading">{t('admin.blockedHeading')}</h2>
+      <p className="chart-note">{t('admin.blockedText')}</p>
+      <p className="save-message" role="status">
+        {message}
+      </p>
+      {blocked.length === 0 ? (
+        <p className="alerts-empty">
+          <span className="ok-mark" aria-hidden="true">✓</span> {t('admin.noBlocked')}
+        </p>
+      ) : (
+        <ul className="alert-list">
+          {blocked.map((box) => (
+            <li key={box.id} className="alert-item">
+              <span className="alert-message">
+                {slotName(t, box.id)} – {t('state.Blocked')}
+              </span>
+              <span className="alert-actions">
+                <button className="secondary-button" type="button" onClick={() => release(box.id)}>
+                  {t('admin.release')}
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 
@@ -202,6 +262,8 @@ function AdminArea({ auth, data }: AdminPageProps) {
           </ul>
         )}
       </section>
+
+      <BlockedBoxes auth={auth} />
 
       <section className="admin-panel admin-section" aria-labelledby="demo-heading">
         <p className="section-kicker">{t('admin.demoKicker')}</p>
