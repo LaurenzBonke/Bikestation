@@ -24,6 +24,7 @@ Raspberry Pi 5
 | `firmware` | ESP32-Firmware + Verdrahtung | [README](firmware/README.md) |
 | `ai` | KI-Anomalieerkennung | [README](ai/README.md) |
 | `tools/simulator.py` | Simuliert die 3 ESP32 – Testen ohne Hardware | siehe unten |
+| `docs` | Architektur, ER-Diagramm, Abläufe, Sicherheit | [ARCHITEKTUR](docs/ARCHITEKTUR.md) |
 
 ## Alles lokal starten (ohne Hardware)
 
@@ -39,7 +40,8 @@ cd Frontend/api; npm install; npm run dev
 # 3. Simulierte ESP32
 python tools/simulator.py --api-key dev-geraete-key-nur-lokal
 
-# 4. KI (einmalig: pip install -r ai/requirements.txt)
+# 4. Optional: zusätzliche KI mit Isolation Forest (einmalig: pip install -r ai/requirements.txt)
+#    Die statistische Anomalieerkennung läuft auch ohne sie direkt im Backend.
 python ai/anomaly_service.py --api-key dev-geraete-key-nur-lokal
 ```
 

@@ -34,6 +34,18 @@ namespace bikestation.Services
                 .Select(g => new { g.Key.SlotId, g.Key.Type, Count = g.Count() })
                 .ToListAsync();
 
+            var readingsByDay = await db.SensorReadings
+                .Where(r => r.Timestamp >= since)
+                .GroupBy(r => r.Timestamp.Date)
+                .Select(g => new { Date = g.Key, Total = g.Count(), Occupied = g.Count(r => r.Occupied) })
+                .ToListAsync();
+
+            var alertsByDay = await db.Alerts
+                .Where(a => a.Timestamp >= since)
+                .GroupBy(a => new { a.Timestamp.Date, a.Type })
+                .Select(g => new { g.Key.Date, g.Key.Type, Count = g.Count() })
+                .ToListAsync();
+
             var openAlerts = await db.Alerts.CountAsync(a => !a.Resolved);
             var slots = await db.Slots.OrderBy(s => s.Id).ToListAsync();
 
@@ -63,6 +75,16 @@ namespace bikestation.Services
                 CountAlerts(s.Id, AlertType.PossibleTampering),
                 CountAlerts(s.Id, AlertType.Anomaly))).ToList();
 
+            var byDay = readingsByDay
+                .OrderBy(d => d.Date)
+                .Select(d => new DailyOccupancyDto(
+                    DateOnly.FromDateTime(d.Date),
+                    Percent(d.Occupied, d.Total),
+                    d.Total,
+                    alertsByDay.Where(a => a.Date == d.Date && a.Type == AlertType.PossibleTampering).Sum(a => a.Count),
+                    alertsByDay.Where(a => a.Date == d.Date && a.Type == AlertType.Anomaly).Sum(a => a.Count)))
+                .ToList();
+
             return new StatisticsDto(
                 days,
                 groups.Sum(g => g.Total),
@@ -72,6 +94,7 @@ namespace bikestation.Services
                 CountAlerts(null, AlertType.Anomaly),
                 openAlerts,
                 byHour,
+                byDay,
                 slotStats);
         }
 

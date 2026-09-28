@@ -41,6 +41,16 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AnomalyService>();
 builder.Services.AddScoped<StatisticsService>();
 builder.Services.AddScoped<DemoDataService>();
+builder.Services.AddScoped<ForecastService>();
+
+// Hintergrunddienste: statistische Anomalieerkennung und Löschen alter Messwerte
+builder.Services.Configure<AnomalyOptions>(builder.Configuration.GetSection(AnomalyOptions.SectionName));
+builder.Services.AddSingleton<AnomalyDetectionWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AnomalyDetectionWorker>());
+builder.Services.AddHostedService<DataRetentionWorker>();
+
+// Einheitliche Fehlerantworten (ProblemDetails) ohne interne Details wie Stacktraces
+builder.Services.AddProblemDetails();
 
 // JWT-Authentifizierung für Admin-Funktionen
 var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
@@ -101,6 +111,8 @@ if (args.Length > 0 && args[0] == "create-admin")
 }
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

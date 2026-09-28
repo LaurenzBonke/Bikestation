@@ -34,6 +34,8 @@ namespace bikestation.Tests
             builder.UseSetting("ConnectionStrings:Bikestation", $"Data Source={DatabaseFile}");
             builder.UseSetting("Devices:ApiKey", ApiKey);
             builder.UseSetting("Jwt:Key", "test-jwt-schluessel-mindestens-32-zeichen-lang");
+            // Hintergrund-Erkennung standardmäßig aus, damit Tests reproduzierbar bleiben
+            builder.UseSetting("Anomaly:Enabled", "false");
             foreach (var (key, value) in _settings)
             {
                 builder.UseSetting(key, value);
