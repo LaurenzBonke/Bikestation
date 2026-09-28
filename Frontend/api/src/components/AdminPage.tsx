@@ -127,7 +127,7 @@ function AdminArea({ auth, data }: AdminPageProps) {
       }
       setMessage(
         err instanceof ApiError && err.status === 404
-          ? 'Demo-Daten gibt es nur, wenn die API im Development-Modus läuft.'
+          ? 'Demo-Daten sind auf diesem Server ausgeschaltet (Einstellung Demo:Enabled).'
           : 'Demo-Daten konnten nicht erzeugt werden.',
       )
     } finally {
@@ -205,7 +205,7 @@ function AdminArea({ auth, data }: AdminPageProps) {
         <h2 id="demo-heading">Demo-Daten</h2>
         <p className="chart-note">
           Erzeugt realistische Messwerte der letzten 7 Tage, damit Statistik und KI schon ohne Hardware etwas zeigen.
-          Nur im Development-Modus verfügbar.
+          Auf dem Server nur, wenn Demo:Enabled eingeschaltet ist.
         </p>
         <div className="admin-actions">
           <button className="secondary-button" type="button" disabled={generating} onClick={generateDemoData}>

@@ -13,8 +13,9 @@
 
 // ---------- API auf dem Raspberry Pi (bzw. eurem Laptop beim Testen) ----------
 // IP-Adresse des Rechners, auf dem die C#-API läuft. NICHT "localhost" – das wäre der ESP32 selbst.
-#define API_URL "http://192.168.0.50:5137/api/sensor-data"
-// Muss mit Devices:ApiKey der API übereinstimmen
+// Server-PC (deploy/start-server.cmd): Port 8080. Entwicklung (dotnet run --launch-profile http-lan): Port 5137.
+#define API_URL "http://192.168.1.198:8080/api/sensor-data"
+// Muss mit Devices:ApiKey der API übereinstimmen (Server: siehe config.ps1 im Server-Ordner)
 #define API_KEY "dev-geraete-key-nur-lokal"
 
 // ---------- Sensoren ----------

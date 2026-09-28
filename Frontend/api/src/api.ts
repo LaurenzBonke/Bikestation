@@ -41,6 +41,28 @@ export type HourlyOccupancy = {
   readings: number
 }
 
+export type DailyOccupancy = {
+  date: string
+  occupancyPercent: number
+  readings: number
+  tamperEvents: number
+  anomalyEvents: number
+}
+
+export type ForecastHour = {
+  start: string
+  hour: number
+  occupancyPercent: number | null
+  expectedFree: number | null
+  readings: number
+}
+
+export type Forecast = {
+  totalSlots: number
+  basedOnDays: number
+  hours: ForecastHour[]
+}
+
 export type SlotStatistics = {
   slotId: number
   name: string
@@ -58,6 +80,7 @@ export type Statistics = {
   anomalyEvents: number
   openAlerts: number
   occupancyByHour: HourlyOccupancy[]
+  occupancyByDay: DailyOccupancy[]
   slots: SlotStatistics[]
 }
 
@@ -104,6 +127,7 @@ export const api = {
   getSlots: (signal?: AbortSignal) => request<Slot[]>('/slots', { signal }),
   getAlerts: (signal?: AbortSignal) => request<Alert[]>('/alerts', { signal }),
   getStatistics: (days: number, signal?: AbortSignal) => request<Statistics>(`/statistics?days=${days}`, { signal }),
+  getForecast: (hours: number, signal?: AbortSignal) => request<Forecast>(`/forecast?hours=${hours}`, { signal }),
 
   login: (username: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),

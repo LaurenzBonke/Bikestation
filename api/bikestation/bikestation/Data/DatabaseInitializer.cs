@@ -17,7 +17,13 @@ namespace bikestation.Data
             var db = scope.ServiceProvider.GetRequiredService<BikestationDbContext>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<BikestationDbContext>>();
 
+            // Ordner für die Datenbankdatei anlegen, falls er fehlt (z. B. eigener Datenordner auf dem Server)
+            var directory = Path.GetDirectoryName(Path.GetFullPath(
+                new SqliteConnectionStringBuilder(db.Database.GetConnectionString()).DataSource));
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+
             db.Database.EnsureCreated();
+            logger.LogInformation("Datenbank: {File}", db.Database.GetDbConnection().DataSource);
             if (SchemaIsCurrent(db))
             {
                 return;

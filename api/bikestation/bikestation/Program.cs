@@ -41,6 +41,16 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<AnomalyService>();
 builder.Services.AddScoped<StatisticsService>();
 builder.Services.AddScoped<DemoDataService>();
+builder.Services.AddScoped<ForecastService>();
+
+// Hintergrunddienste: statistische Anomalieerkennung und Löschen alter Messwerte
+builder.Services.Configure<AnomalyOptions>(builder.Configuration.GetSection(AnomalyOptions.SectionName));
+builder.Services.AddSingleton<AnomalyDetectionWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AnomalyDetectionWorker>());
+builder.Services.AddHostedService<DataRetentionWorker>();
+
+// Einheitliche Fehlerantworten (ProblemDetails) ohne interne Details wie Stacktraces
+builder.Services.AddProblemDetails();
 
 // JWT-Authentifizierung für Admin-Funktionen
 var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
@@ -101,6 +111,8 @@ if (args.Length > 0 && args[0] == "create-admin")
 }
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -108,6 +120,21 @@ if (app.Environment.IsDevelopment())
 }
 // Keine HTTPS-Umleitung: Die ESP32 senden per HTTP im lokalen Netz und würden einer Umleitung nicht folgen.
 // HTTPS kann später ein Reverse Proxy (z. B. nginx) auf dem Raspberry Pi übernehmen.
+
+// Grundlegende Sicherheits-Header für alle Antworten
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.XFrameOptions = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    await next();
+});
+
+// Liefert das gebaute React-Dashboard aus wwwroot aus (index.html unter "/"),
+// damit Frontend und API über denselben Server und Port erreichbar sind
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -117,3 +144,6 @@ app.MapControllers();
 
 app.Run();
 return 0;
+
+// Für die Integrationstests (WebApplicationFactory)
+public partial class Program;

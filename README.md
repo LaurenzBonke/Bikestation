@@ -24,6 +24,7 @@ Raspberry Pi 5
 | `firmware` | ESP32-Firmware + Verdrahtung | [README](firmware/README.md) |
 | `ai` | KI-Anomalieerkennung | [README](ai/README.md) |
 | `tools/simulator.py` | Simuliert die 3 ESP32 – Testen ohne Hardware | siehe unten |
+| `docs` | Architektur, ER-Diagramm, Abläufe, Sicherheit | [ARCHITEKTUR](docs/ARCHITEKTUR.md) |
 
 ## Alles lokal starten (ohne Hardware)
 
@@ -39,13 +40,28 @@ cd Frontend/api; npm install; npm run dev
 # 3. Simulierte ESP32
 python tools/simulator.py --api-key dev-geraete-key-nur-lokal
 
-# 4. KI (einmalig: pip install -r ai/requirements.txt)
+# 4. Optional: zusätzliche KI mit Isolation Forest (einmalig: pip install -r ai/requirements.txt)
+#    Die statistische Anomalieerkennung läuft auch ohne sie direkt im Backend.
 python ai/anomaly_service.py --api-key dev-geraete-key-nur-lokal
 ```
 
 Für die Präsentation: Im Dashboard unter **Admin** anmelden und **Demo-Daten erzeugen** klicken –
 dann zeigen Statistik und KI sofort Ergebnisse. Eine Manipulation vorführen:
 `python tools/simulator.py --api-key dev-geraete-key-nur-lokal --tamper-slot 2`
+
+## Als Webserver betreiben (Windows-PC)
+
+API und Dashboard laufen zusammen in einem Prozess auf Port 8080 (das gebaute Dashboard liegt in `wwwroot`).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\publish.ps1   # baut alles nach %USERPROFILE%\Bikestation-Server
+%USERPROFILE%\Bikestation-Server\create-admin.cmd admin      # einmalig
+%USERPROFILE%\Bikestation-Server\start-server.cmd
+```
+
+`publish.ps1` erzeugt beim ersten Mal `config.ps1` mit zufälligen Schlüsseln (Produktionsmodus).
+Datenbank (`data\`), Logs und `config.ps1` bleiben bei Updates erhalten. Für Zugriff von anderen
+Geräten muss Port 8080 in der Windows-Firewall freigegeben werden.
 
 ## Sicherheit
 

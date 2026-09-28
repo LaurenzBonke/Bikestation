@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type Statistics } from '../api'
+import { api, type DailyOccupancy, type Statistics } from '../api'
 
 const PERIODS = [
   { days: 1, label: '24 Stunden' },
@@ -94,6 +94,18 @@ export default function StatisticsPage() {
               Anteil der Messungen, bei denen ein Platz belegt war · {stats.totalReadings.toLocaleString('de-DE')}{' '}
               Messungen
             </p>
+          </section>
+
+          <section className="admin-panel admin-section" aria-labelledby="daily-heading">
+            <p className="section-kicker">VERLAUF</p>
+            <h2 id="daily-heading">Auslastung pro Tag (%)</h2>
+            {stats.occupancyByDay.length === 0 ? (
+              <p className="alerts-empty">Noch keine Messwerte in diesem Zeitraum.</p>
+            ) : showTable ? (
+              <DayTable days={stats.occupancyByDay} />
+            ) : (
+              <DayChart days={stats.occupancyByDay} />
+            )}
           </section>
 
           <section className="admin-panel admin-section" aria-labelledby="slots-heading">
@@ -194,6 +206,84 @@ function HourTable({ stats }: { stats: Statistics }) {
               <th scope="row">{hourLabel(h.hour)} Uhr</th>
               <td>{h.occupancyPercent.toLocaleString('de-DE')} %</td>
               <td>{h.readings}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+const dayFormat = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
+
+function dayLabel(date: string) {
+  return dayFormat.format(new Date(`${date}T12:00:00`))
+}
+
+// Gleicher Aufbau wie das Stunden-Diagramm: eine Reihe, eine Farbe, Tooltip pro Balken
+function DayChart({ days }: { days: DailyOccupancy[] }) {
+  const labelEvery = Math.ceil(days.length / 8)
+  return (
+    <div className="hour-chart">
+      <div className="hour-grid" aria-hidden="true">
+        {[100, 50, 0].map((line) => (
+          <span key={line} className="grid-line" style={{ bottom: `${line}%` }}>
+            <span>{line}</span>
+          </span>
+        ))}
+      </div>
+      <ol className="hour-bars" style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}>
+        {days.map((d) => (
+          <li
+            key={d.date}
+            className="hour-bar"
+            tabIndex={0}
+            aria-label={`${dayLabel(d.date)}: ${d.occupancyPercent} Prozent belegt, ${d.tamperEvents} Vibrations-Meldungen, ${d.anomalyEvents} KI-Anomalien`}
+          >
+            <span className="bar-fill" style={{ height: `${Math.max(d.occupancyPercent, 0.5)}%` }}>
+              <span className="bar-tooltip" role="tooltip">
+                <strong>{dayLabel(d.date)}</strong>
+                {d.occupancyPercent.toLocaleString('de-DE')} % belegt
+                <small>
+                  {d.tamperEvents} Vibration · {d.anomalyEvents} KI-Anomalien
+                </small>
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <div className="hour-axis" aria-hidden="true">
+        {days.map((d, i) =>
+          i % labelEvery === 0 ? (
+            <span key={d.date} style={{ left: `${((i + 0.5) / days.length) * 100}%` }}>
+              {dayLabel(d.date).split(',')[0]}
+            </span>
+          ) : null,
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DayTable({ days }: { days: DailyOccupancy[] }) {
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Tag</th>
+            <th scope="col">Auslastung</th>
+            <th scope="col">Vibrations-Meldungen</th>
+            <th scope="col">KI-Anomalien</th>
+          </tr>
+        </thead>
+        <tbody>
+          {days.map((d) => (
+            <tr key={d.date}>
+              <th scope="row">{dayLabel(d.date)}</th>
+              <td>{d.occupancyPercent.toLocaleString('de-DE')} %</td>
+              <td>{d.tamperEvents}</td>
+              <td>{d.anomalyEvents}</td>
             </tr>
           ))}
         </tbody>
