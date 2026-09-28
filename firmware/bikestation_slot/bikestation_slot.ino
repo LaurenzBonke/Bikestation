@@ -1,7 +1,9 @@
 // Smart Bikestation – Firmware für einen Stellplatz (ESP32)
 //
 // Liest Drucksensor (SEN0616), Ultraschallsensor (Grove Ultrasonic Ranger V2.0) und
-// Vibrationssensor, schaltet die grüne/rote LED und sendet die Messwerte per WLAN an die C#-API.
+// Vibrationssensor und sendet die Messwerte per WLAN an die C#-API. Die Antwort der API enthält den
+// Zustand der Box (frei / offen / verriegelt / gesperrt) – danach richten sich die LEDs und, falls
+// angeschlossen, der Servo-Riegel. Entscheiden tut allein das Backend.
 // Alle 3 ESP32 bekommen dieselbe Firmware – nur SLOT_ID in config.h ist unterschiedlich.
 //
 // Board: "ESP32 Dev Module" (Boardpaket "esp32" von Espressif). Keine weiteren Bibliotheken nötig.
@@ -10,16 +12,38 @@
 #include <HTTPClient.h>
 #include "config.h"
 
-// ---------- Pins laut Projektplan – auf der echten Platine prüfen! ----------
-const int PIN_PRESSURE = 34;    // SEN0616 analog. GPIO34 = ADC1, funktioniert auch bei aktivem WLAN
-const int PIN_ULTRASONIC = 27;  // Grove Ultrasonic SIG (ein Pin für Trigger und Echo)
-const int PIN_VIBRATION = 26;   // Vibrationssensor digitaler Ausgang
-const int PIN_LED_GREEN = 25;   // grün = frei
-const int PIN_LED_RED = 33;     // rot = belegt
+// ---------- Pins: Standard laut Projektplan, in config.h überschreibbar ----------
+#ifndef PIN_PRESSURE
+#define PIN_PRESSURE 34    // SEN0616 analog. Muss ein ADC1-Pin sein (32–39), ADC2 geht nicht mit WLAN
+#endif
+#ifndef PIN_ULTRASONIC
+#define PIN_ULTRASONIC 27  // Grove Ultrasonic SIG (ein Pin für Trigger und Echo)
+#endif
+#ifndef PIN_VIBRATION
+#define PIN_VIBRATION 26   // Vibrationssensor digitaler Ausgang
+#endif
+#ifndef PIN_LED_GREEN
+#define PIN_LED_GREEN 25   // grün = frei
+#endif
+#ifndef PIN_LED_RED
+#define PIN_LED_RED 33     // rot = belegt
+#endif
+// Optional: Servo-Riegel am ESP32 (in config.h PIN_SERVO eintragen). Ohne PIN_SERVO steuert z. B. der Pi den Riegel.
+#ifndef SERVO_OPEN_ANGLE
+#define SERVO_OPEN_ANGLE 90
+#endif
+#ifndef SERVO_CLOSED_ANGLE
+#define SERVO_CLOSED_ANGLE 0
+#endif
+// Fahrrad gilt lokal als "da", wenn der Ultraschall höchstens so nah misst – sollte zu Box:BikePresentMaxDistanceCm passen
+#ifndef BIKE_PRESENT_MAX_CM
+#define BIKE_PRESENT_MAX_CM 5
+#endif
 
 // ---------- Zeiten ----------
 const unsigned long MEASURE_INTERVAL_MS = 500;   // so oft wird gemessen
-const unsigned long SEND_INTERVAL_MS = 5000;     // spätestens so oft wird gesendet (Lebenszeichen)
+const unsigned long SEND_INTERVAL_MS = 2000;     // spätestens so oft wird gesendet (Lebenszeichen)
+const unsigned long SEND_INTERVAL_OPEN_MS = 1000; // solange die Box offen ist, schneller (Riegel reagiert zügig)
 const unsigned long WIFI_RETRY_MS = 10000;       // so oft wird ein WLAN-Neuverbinden versucht
 const unsigned long HTTP_TIMEOUT_MS = 3000;
 
@@ -28,8 +52,10 @@ const int NO_ECHO_DISTANCE_CM = 500;
 
 volatile bool vibrationDetected = false;
 
-bool occupied = false;            // aktueller Zustand (LEDs), kann von der API-Antwort überschrieben werden
-bool lastLocalOccupied = false;   // letzte eigene Entscheidung, um Änderungen zu erkennen
+// Zustand der Box laut API: 'F' frei, 'O' offen (Einstellen/Abholen), 'L' verriegelt, 'B' gesperrt, '?' unbekannt
+char boxState = '?';
+bool lockOpen = false;
+bool lastLocalOccupied = false;   // letzte eigene Messung "Fahrrad da?", um Änderungen sofort zu senden
 unsigned long lastMeasure = 0;
 unsigned long lastSend = 0;
 unsigned long lastWifiAttempt = 0;
@@ -39,9 +65,36 @@ void IRAM_ATTR onVibration() {
   vibrationDetected = true;
 }
 
-void setLeds(bool isOccupied) {
-  digitalWrite(PIN_LED_GREEN, isOccupied ? LOW : HIGH);
-  digitalWrite(PIN_LED_RED, isOccupied ? HIGH : LOW);
+// LEDs zeigen den Box-Zustand: grün = frei, rot = verriegelt/gesperrt, grün blinkend = offen
+void updateLeds() {
+  bool blinkOn = (millis() / 400) % 2 == 0;
+  switch (boxState) {
+    case 'F': digitalWrite(PIN_LED_GREEN, HIGH); digitalWrite(PIN_LED_RED, LOW); break;
+    case 'O': digitalWrite(PIN_LED_GREEN, blinkOn ? HIGH : LOW); digitalWrite(PIN_LED_RED, LOW); break;
+    case 'L':
+    case 'B': digitalWrite(PIN_LED_GREEN, LOW); digitalWrite(PIN_LED_RED, HIGH); break;
+    default:  digitalWrite(PIN_LED_GREEN, LOW); digitalWrite(PIN_LED_RED, blinkOn ? HIGH : LOW); break;  // keine Verbindung
+  }
+}
+
+#ifdef PIN_SERVO
+// Servo per LEDC-PWM (50 Hz, 14 Bit) – ohne zusätzliche Bibliothek
+void setServoAngle(int angle) {
+  const int pulseUs = 500 + angle * 2000 / 180;           // 0° = 0,5 ms, 180° = 2,5 ms
+  ledcWrite(PIN_SERVO, (uint32_t)pulseUs * 16384 / 20000);  // Anteil an 20 ms Periode
+}
+#endif
+
+void applyLock(bool open) {
+#ifdef PIN_SERVO
+  static int lastApplied = -1;
+  if (lastApplied == (open ? 1 : 0)) return;
+  lastApplied = open ? 1 : 0;
+  setServoAngle(open ? SERVO_OPEN_ANGLE : SERVO_CLOSED_ANGLE);
+  Serial.printf("Riegel %s\n", open ? "GEOEFFNET" : "geschlossen");
+#else
+  (void)open;
+#endif
 }
 
 // Mittelwert aus mehreren Messungen gegen Rauschen
@@ -113,11 +166,14 @@ bool sendReading(int pressure, int distance, bool vibration) {
   bool ok = status == 200;
 
   if (ok) {
-    // Die API entscheidet endgültig über "belegt" (Schwellwert zentral einstellbar)
+    // Die API entscheidet über Box-Zustand und Riegel
     String response = http.getString();
-    if (response.indexOf("\"occupied\":true") >= 0) occupied = true;
-    if (response.indexOf("\"occupied\":false") >= 0) occupied = false;
-    setLeds(occupied);
+    if (response.indexOf("\"boxState\":\"Free\"") >= 0) boxState = 'F';
+    else if (response.indexOf("\"boxState\":\"Locked\"") >= 0) boxState = 'L';
+    else if (response.indexOf("\"boxState\":\"Blocked\"") >= 0) boxState = 'B';
+    else if (response.indexOf("\"boxState\":\"OpenFor") >= 0) boxState = 'O';
+    lockOpen = response.indexOf("\"lockOpen\":true") >= 0;
+    applyLock(lockOpen);
   } else if (status == 401) {
     Serial.println("API lehnt ab: API_KEY in config.h prüfen");
   } else {
@@ -147,7 +203,12 @@ void setup() {
   digitalWrite(PIN_LED_GREEN, HIGH);
   digitalWrite(PIN_LED_RED, HIGH);
   delay(500);
-  setLeds(false);
+  updateLeds();
+
+#ifdef PIN_SERVO
+  ledcAttach(PIN_SERVO, 50, 14);
+  applyLock(false);  // beim Start verriegelt, bis die API etwas anderes sagt
+#endif
 
   WiFi.mode(WIFI_STA);
   connectWifi();
@@ -155,6 +216,7 @@ void setup() {
 
 void loop() {
   connectWifi();
+  updateLeds();
 
   if (millis() - lastMeasure < MEASURE_INTERVAL_MS) return;
   lastMeasure = millis();
@@ -163,24 +225,19 @@ void loop() {
   int distance = readDistance();
   bool vibration = vibrationDetected;
 
-  // Lokale Entscheidung, damit die LED sofort reagiert – auch ohne WLAN
-  // Verglichen wird mit der letzten eigenen Entscheidung (nicht mit der API-Antwort),
-  // sonst würde die LED springen, falls die Schwellwerte von ESP32 und API abweichen.
-  bool localOccupied = pressure >= PRESSURE_THRESHOLD;
+  // Hat sich "Fahrrad da?" geändert, sofort senden – die API schaltet dann den Riegel
+  bool localOccupied = distance <= BIKE_PRESENT_MAX_CM || pressure >= PRESSURE_THRESHOLD;
   bool changed = localOccupied != lastLocalOccupied;
-  if (changed) {
-    lastLocalOccupied = localOccupied;
-    occupied = localOccupied;
-    setLeds(occupied);
-  }
+  lastLocalOccupied = localOccupied;
 
   // Ausgabe für die Kalibrierung im seriellen Monitor (115200 Baud)
-  Serial.printf("pressure=%4d distance=%3d cm vib=%d -> %s | WLAN %s\n",
-                pressure, distance, vibration ? 1 : 0, occupied ? "belegt" : "frei",
+  Serial.printf("pressure=%4d distance=%3d cm vib=%d -> %s | Box %c Riegel %s | WLAN %s\n",
+                pressure, distance, vibration ? 1 : 0, localOccupied ? "Rad da" : "leer", boxState,
+                lockOpen ? "offen" : "zu",
                 WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString().c_str() : "getrennt");
 
-  // Sofort senden bei Änderung oder Vibration, sonst regelmäßig als Lebenszeichen
-  if (changed || vibration || millis() - lastSend >= SEND_INTERVAL_MS) {
+  unsigned long interval = boxState == 'O' ? SEND_INTERVAL_OPEN_MS : SEND_INTERVAL_MS;
+  if (changed || vibration || millis() - lastSend >= interval) {
     if (sendReading(pressure, distance, vibration)) {
       vibrationDetected = false;
     }

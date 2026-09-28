@@ -1,16 +1,19 @@
 import type { Slot } from '../api'
 import { formatTime, pad2 } from '../format'
-import { displayStatus, statusText } from '../slotStatus'
+import { displayStatus, slotName, statusKey } from '../slotStatus'
+import { useI18n } from '../i18n'
 
 export default function SlotList({ slots }: { slots: Slot[] }) {
+  const { t, locale } = useI18n()
+
   return (
     <>
       <div className="spots-heading">
         <div>
-          <h3 className="section-kicker">STELLPLÄTZE</h3>
-          <span className="spots-hint">Status und Sensorwerte je Platz</span>
+          <h3 className="section-kicker">{t('slots.heading')}</h3>
+          <span className="spots-hint">{t('slots.hint')}</span>
         </div>
-        <span className="total-spots">{pad2(slots.length)} GESAMT</span>
+        <span className="total-spots">{t('slots.total', { count: pad2(slots.length) })}</span>
       </div>
 
       <ul className="spot-list">
@@ -27,27 +30,26 @@ export default function SlotList({ slots }: { slots: Slot[] }) {
               </svg>
             </span>
             <span className="spot-main">
-              <span className="spot-name">{slot.name}</span>
+              <span className="spot-name">{slotName(t, slot.id)}</span>
               <SensorValues slot={slot} />
+              <span className="sensor-values">{t('slot.boxState', { state: t(`state.${slot.boxState}`) })}</span>
             </span>
             <span className={`spot-status ${displayStatus(slot)}`}>
               <span aria-hidden="true"></span>
-              {statusText[displayStatus(slot)]}
+              {t(statusKey[displayStatus(slot)])}
             </span>
             {slot.possibleTampering && (
               <p className="tamper-warning" role="alert">
-                <span aria-hidden="true">⚠</span> Mögliche Manipulation erkannt
+                <span aria-hidden="true">⚠</span> {t('slot.tamper')}
               </p>
             )}
             {slot.hasAnomaly && (
               <p className="tamper-warning" role="alert">
-                <span aria-hidden="true">⚠</span> Ungewöhnliche Aktivität (KI-Erkennung)
+                <span aria-hidden="true">⚠</span> {t('slot.anomaly')}
               </p>
             )}
             {displayStatus(slot) === 'offline' && (
-              <p className="offline-note">
-                Sensor meldet sich nicht – letzter Stand {formatTime(slot.lastUpdated)}. Status evtl. veraltet.
-              </p>
+              <p className="offline-note">{t('slot.offlineNote', { time: formatTime(slot.lastUpdated, locale) })}</p>
             )}
           </li>
         ))}
@@ -57,15 +59,20 @@ export default function SlotList({ slots }: { slots: Slot[] }) {
 }
 
 function SensorValues({ slot }: { slot: Slot }) {
+  const { t, locale } = useI18n()
   const reading = slot.latestReading
   if (!reading) {
-    return <span className="sensor-values">Noch keine Sensordaten empfangen</span>
+    return <span className="sensor-values">{t('slot.noData')}</span>
   }
 
   return (
     <span className="sensor-values">
-      Druck {reading.pressure} · Abstand {reading.distance} cm · Vibration {reading.vibration ? 'ja' : 'nein'} ·{' '}
-      {formatTime(reading.timestamp)}
+      {t('slot.values', {
+        pressure: reading.pressure,
+        distance: reading.distance,
+        vibration: reading.vibration ? t('common.yes') : t('common.no'),
+        time: formatTime(reading.timestamp, locale),
+      })}
     </span>
   )
 }

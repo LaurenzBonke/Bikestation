@@ -1,35 +1,20 @@
-import type { Alert, Slot } from '../api'
-import { formatDateTime } from '../format'
+import type { Alert } from '../api'
+import { formatDateTime, formatNumber } from '../format'
+import { alertMessage, slotName } from '../slotStatus'
+import { useI18n } from '../i18n'
 
-type AlertsPanelProps = {
-  alerts: Alert[]
-  slots: Slot[]
-}
-
-const severityText: Record<Alert['severity'], string> = {
-  Info: 'Hinweis',
-  Warning: 'Warnung',
-  Critical: 'Kritisch',
-}
-
-export const alertTypeText: Record<Alert['type'], string> = {
-  PossibleTampering: 'Vibration',
-  SensorMismatch: 'Sensoren widersprüchlich',
-  Anomaly: 'KI-Anomalie',
-}
-
-export default function AlertsPanel({ alerts, slots }: AlertsPanelProps) {
-  const slotName = (id: number) => slots.find((slot) => slot.id === id)?.name ?? `Stellplatz ${id}`
+export default function AlertsPanel({ alerts }: { alerts: Alert[] }) {
+  const { t, locale } = useI18n()
 
   return (
     <aside className="station-panel" aria-labelledby="alerts-heading">
       <div className="station-details">
-        <p className="section-kicker">MELDUNGEN</p>
-        <h2 id="alerts-heading">Offene Meldungen</h2>
+        <p className="section-kicker">{t('alerts.kicker')}</p>
+        <h2 id="alerts-heading">{t('alerts.heading')}</h2>
 
         {alerts.length === 0 ? (
           <p className="alerts-empty">
-            <span className="ok-mark" aria-hidden="true">✓</span> Keine offenen Meldungen. Alles in Ordnung.
+            <span className="ok-mark" aria-hidden="true">✓</span> {t('alerts.none')}
           </p>
         ) : (
           <ul className="alert-list">
@@ -37,23 +22,23 @@ export default function AlertsPanel({ alerts, slots }: AlertsPanelProps) {
               <li key={alert.id} className={`alert-item severity-${alert.severity.toLowerCase()}`}>
                 <span className="alert-meta">
                   <span className="alert-badge">
-                    <span aria-hidden="true">⚠</span> {severityText[alert.severity]}
+                    <span aria-hidden="true">⚠</span> {t(`severity.${alert.severity}`)}
                   </span>
-                  <span>{slotName(alert.slotId)}</span>
+                  <span>{slotName(t, alert.slotId)}</span>
                   <span className="alert-type">
-                    {alertTypeText[alert.type]}
-                    {alert.score !== null && ` · Score ${alert.score.toFixed(2)}`}
+                    {t(`alertType.${alert.type}`)}
+                    {alert.score !== null && ` · Score ${formatNumber(alert.score, locale)}`}
                   </span>
-                  <time dateTime={alert.timestamp}>{formatDateTime(alert.timestamp)}</time>
+                  <time dateTime={alert.timestamp}>{formatDateTime(alert.timestamp, locale)}</time>
                 </span>
-                <span className="alert-message">{alert.message}</span>
+                <span className="alert-message">{alertMessage(t, alert)}</span>
               </li>
             ))}
           </ul>
         )}
       </div>
       <div className="station-footer">
-        <span className="footer-signal" aria-hidden="true"></span> Meldungen entstehen durch Vibration oder die KI-Anomalieerkennung
+        <span className="footer-signal" aria-hidden="true"></span> {t('alerts.footer')}
       </div>
     </aside>
   )

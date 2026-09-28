@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Dateien für den Raspberry Pi immer mit Linux-Zeilenenden
+*.sh text eol=lf
+*.service text eol=lf
+pi/*.py text eol=lf
+pi/*.ini text eol=lf

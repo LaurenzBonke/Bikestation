@@ -12,6 +12,10 @@ namespace bikestation.Options
         // Mindestens 32 Zeichen (256 Bit) für HMAC-SHA256
         public string Key { get; set; } = string.Empty;
 
+        // Gültigkeit für Admins (mehr Rechte -> kürzer)
         public int ExpiresMinutes { get; set; } = 60;
+
+        // Gültigkeit für normale Nutzer: lang genug, dass ein Alarm während des Parkens ankommt
+        public int UserExpiresMinutes { get; set; } = 720;
     }
 }

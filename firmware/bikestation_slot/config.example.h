@@ -18,6 +18,23 @@
 // Muss mit Devices:ApiKey der API übereinstimmen (Server: siehe config.ps1 im Server-Ordner)
 #define API_KEY "dev-geraete-key-nur-lokal"
 
+// ---------- Pins (nur eintragen, wenn anders verdrahtet als im Projektplan) ----------
+// #define PIN_PRESSURE 34      // SEN0616 analog, nur ADC1-Pins 32–39
+// #define PIN_ULTRASONIC 27    // Grove Ultrasonic SIG (gelbes Kabel)
+// #define PIN_VIBRATION 26
+// #define PIN_LED_GREEN 25
+// #define PIN_LED_RED 33
+
+// ---------- Optional: Servo-Riegel direkt am ESP32 ----------
+// Nur eintragen, wenn der Servo am ESP32 hängt (sonst steuert der Raspberry Pi den Riegel).
+// Servo-Plus an 5 V (VIN), Masse gemeinsam, Signal an diesen Pin.
+// #define PIN_SERVO 13
+// #define SERVO_OPEN_ANGLE 90
+// #define SERVO_CLOSED_ANGLE 0
+
+// Fahrrad gilt als "da", wenn der Ultraschall höchstens so nah misst (cm) – wie Box:BikePresentMaxDistanceCm der API
+// #define BIKE_PRESENT_MAX_CM 5
+
 // ---------- Sensoren ----------
 // ANNAHME: Startwert. Mit dem seriellen Monitor die echten Werte ablesen (frei / mit Fahrrad)
 // und einen Wert dazwischen wählen. Sollte zu Occupancy:PressureThreshold der API passen.

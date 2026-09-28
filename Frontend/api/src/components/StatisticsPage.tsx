@@ -1,30 +1,30 @@
 import { useEffect, useState } from 'react'
 import { api, type DailyOccupancy, type Statistics } from '../api'
+import { formatDay, formatNumber, hourLabel } from '../format'
+import { slotName } from '../slotStatus'
+import { useI18n, type TranslationKey } from '../i18n'
 
-const PERIODS = [
-  { days: 1, label: '24 Stunden' },
-  { days: 7, label: '7 Tage' },
-  { days: 30, label: '30 Tage' },
+const PERIODS: { days: number; label: TranslationKey }[] = [
+  { days: 1, label: 'stats.period1' },
+  { days: 7, label: 'stats.period7' },
+  { days: 30, label: 'stats.period30' },
 ]
 
-function hourLabel(hour: number) {
-  return `${String(hour).padStart(2, '0')}:00`
-}
-
 export default function StatisticsPage() {
+  const { t, locale } = useI18n()
   const [days, setDays] = useState(7)
   const [stats, setStats] = useState<Statistics | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(false)
   const [showTable, setShowTable] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
-    setError('')
+    setError(false)
     api
       .getStatistics(days, controller.signal)
       .then(setStats)
       .catch(() => {
-        if (!controller.signal.aborted) setError('Statistik konnte nicht geladen werden.')
+        if (!controller.signal.aborted) setError(true)
       })
     return () => controller.abort()
   }, [days])
@@ -34,12 +34,12 @@ export default function StatisticsPage() {
       <section className="intro-row">
         <div>
           <p className="eyebrow">
-            <span className="eyebrow-line" aria-hidden="true"></span> AUSWERTUNG
+            <span className="eyebrow-line" aria-hidden="true"></span> {t('stats.eyebrow')}
           </p>
-          <h1>Statistik</h1>
-          <p className="intro-copy">Auslastung und Ereignisse der Station.</p>
+          <h1>{t('stats.title')}</h1>
+          <p className="intro-copy">{t('stats.intro')}</p>
         </div>
-        <div className="period-picker" role="group" aria-label="Zeitraum">
+        <div className="period-picker" role="group" aria-label={t('stats.period')}>
           {PERIODS.map((period) => (
             <button
               key={period.days}
@@ -48,7 +48,7 @@ export default function StatisticsPage() {
               aria-pressed={days === period.days}
               onClick={() => setDays(period.days)}
             >
-              {period.label}
+              {t(period.label)}
             </button>
           ))}
         </div>
@@ -56,51 +56,48 @@ export default function StatisticsPage() {
 
       {error && (
         <p className="error-notice" role="alert">
-          {error}
+          {t('stats.error')}
         </p>
       )}
 
       {stats && (
         <>
-          <section className="stat-tiles" aria-label="Kennzahlen">
-            <Tile label="Durchschnittliche Auslastung" value={`${stats.occupancyPercent.toLocaleString('de-DE')} %`} />
+          <section className="stat-tiles" aria-label={t('stats.tiles')}>
+            <Tile label={t('stats.avg')} value={`${formatNumber(stats.occupancyPercent, locale)} %`} />
             <Tile
-              label="Stoßzeit"
-              value={stats.busiestHour === null ? '–' : `${hourLabel(stats.busiestHour)} Uhr`}
+              label={t('stats.peak')}
+              value={stats.busiestHour === null ? '–' : t('stats.peakValue', { hour: hourLabel(stats.busiestHour) })}
             />
-            <Tile label="Vibrations-Meldungen" value={String(stats.tamperEvents)} />
-            <Tile label="KI-Anomalien" value={String(stats.anomalyEvents)} />
+            <Tile label={t('stats.tamper')} value={String(stats.tamperEvents)} />
+            <Tile label={t('stats.anomalies')} value={String(stats.anomalyEvents)} />
           </section>
 
           <section className="admin-panel admin-section" aria-labelledby="hourly-heading">
             <div className="chart-heading">
               <div>
-                <p className="section-kicker">NACH UHRZEIT</p>
-                <h2 id="hourly-heading">Auslastung nach Uhrzeit (%)</h2>
+                <p className="section-kicker">{t('stats.byHourKicker')}</p>
+                <h2 id="hourly-heading">{t('stats.byHour')}</h2>
               </div>
               <button className="text-link-button" type="button" onClick={() => setShowTable((v) => !v)}>
-                {showTable ? 'Als Diagramm anzeigen' : 'Als Tabelle anzeigen'}
+                {showTable ? t('stats.showChart') : t('stats.showTable')}
               </button>
             </div>
 
             {stats.totalReadings === 0 ? (
-              <p className="alerts-empty">Noch keine Messwerte in diesem Zeitraum.</p>
+              <p className="alerts-empty">{t('stats.empty')}</p>
             ) : showTable ? (
               <HourTable stats={stats} />
             ) : (
               <HourChart stats={stats} />
             )}
-            <p className="chart-note">
-              Anteil der Messungen, bei denen ein Platz belegt war · {stats.totalReadings.toLocaleString('de-DE')}{' '}
-              Messungen
-            </p>
+            <p className="chart-note">{t('stats.note', { count: formatNumber(stats.totalReadings, locale) })}</p>
           </section>
 
           <section className="admin-panel admin-section" aria-labelledby="daily-heading">
-            <p className="section-kicker">VERLAUF</p>
-            <h2 id="daily-heading">Auslastung pro Tag (%)</h2>
+            <p className="section-kicker">{t('stats.byDayKicker')}</p>
+            <h2 id="daily-heading">{t('stats.byDay')}</h2>
             {stats.occupancyByDay.length === 0 ? (
-              <p className="alerts-empty">Noch keine Messwerte in diesem Zeitraum.</p>
+              <p className="alerts-empty">{t('stats.empty')}</p>
             ) : showTable ? (
               <DayTable days={stats.occupancyByDay} />
             ) : (
@@ -109,23 +106,23 @@ export default function StatisticsPage() {
           </section>
 
           <section className="admin-panel admin-section" aria-labelledby="slots-heading">
-            <p className="section-kicker">JE STELLPLATZ</p>
-            <h2 id="slots-heading">Stellplätze im Vergleich</h2>
+            <p className="section-kicker">{t('stats.bySlotKicker')}</p>
+            <h2 id="slots-heading">{t('stats.bySlot')}</h2>
             <div className="table-wrap">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th scope="col">Stellplatz</th>
-                    <th scope="col">Auslastung</th>
-                    <th scope="col">Vibrations-Meldungen</th>
-                    <th scope="col">KI-Anomalien</th>
+                    <th scope="col">{t('stats.colSlot')}</th>
+                    <th scope="col">{t('stats.colOccupancy')}</th>
+                    <th scope="col">{t('stats.tamper')}</th>
+                    <th scope="col">{t('stats.anomalies')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.slots.map((slot) => (
                     <tr key={slot.slotId}>
-                      <th scope="row">{slot.name}</th>
-                      <td>{slot.occupancyPercent.toLocaleString('de-DE')} %</td>
+                      <th scope="row">{slotName(t, slot.slotId)}</th>
+                      <td>{formatNumber(slot.occupancyPercent, locale)} %</td>
                       <td>{slot.tamperEvents}</td>
                       <td>{slot.anomalyEvents}</td>
                     </tr>
@@ -149,30 +146,37 @@ function Tile({ label, value }: { label: string; value: string }) {
   )
 }
 
+function ChartGrid() {
+  return (
+    <div className="hour-grid" aria-hidden="true">
+      {[100, 50, 0].map((line) => (
+        <span key={line} className="grid-line" style={{ bottom: `${line}%` }}>
+          <span>{line}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
 // Balkendiagramm: eine Reihe, eine Farbe. Jeder Balken ist fokussierbar und zeigt einen Tooltip.
 function HourChart({ stats }: { stats: Statistics }) {
+  const { t, locale } = useI18n()
   return (
     <div className="hour-chart">
-      <div className="hour-grid" aria-hidden="true">
-        {[100, 50, 0].map((line) => (
-          <span key={line} className="grid-line" style={{ bottom: `${line}%` }}>
-            <span>{line}</span>
-          </span>
-        ))}
-      </div>
+      <ChartGrid />
       <ol className="hour-bars">
         {stats.occupancyByHour.map((h) => (
           <li
             key={h.hour}
             className={`hour-bar ${h.hour === stats.busiestHour ? 'is-peak' : ''}`}
             tabIndex={0}
-            aria-label={`${hourLabel(h.hour)} Uhr: ${h.occupancyPercent} Prozent belegt`}
+            aria-label={t('stats.hourAria', { hour: hourLabel(h.hour), percent: formatNumber(h.occupancyPercent, locale) })}
           >
             <span className="bar-fill" style={{ height: `${Math.max(h.occupancyPercent, 0.5)}%` }}>
               <span className="bar-tooltip" role="tooltip">
-                <strong>{hourLabel(h.hour)} Uhr</strong>
-                {h.occupancyPercent.toLocaleString('de-DE')} % belegt
-                <small>{h.readings} Messungen</small>
+                <strong>{t('stats.tooltipHour', { hour: hourLabel(h.hour) })}</strong>
+                {t('stats.tooltipOccupied', { percent: formatNumber(h.occupancyPercent, locale) })}
+                <small>{t('stats.tooltipReadings', { count: formatNumber(h.readings, locale) })}</small>
               </span>
             </span>
           </li>
@@ -190,22 +194,23 @@ function HourChart({ stats }: { stats: Statistics }) {
 }
 
 function HourTable({ stats }: { stats: Statistics }) {
+  const { t, locale } = useI18n()
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <th scope="col">Uhrzeit</th>
-            <th scope="col">Auslastung</th>
-            <th scope="col">Messungen</th>
+            <th scope="col">{t('stats.colTime')}</th>
+            <th scope="col">{t('stats.colOccupancy')}</th>
+            <th scope="col">{t('stats.colReadings')}</th>
           </tr>
         </thead>
         <tbody>
           {stats.occupancyByHour.map((h) => (
             <tr key={h.hour}>
-              <th scope="row">{hourLabel(h.hour)} Uhr</th>
-              <td>{h.occupancyPercent.toLocaleString('de-DE')} %</td>
-              <td>{h.readings}</td>
+              <th scope="row">{t('stats.tooltipHour', { hour: hourLabel(h.hour) })}</th>
+              <td>{formatNumber(h.occupancyPercent, locale)} %</td>
+              <td>{formatNumber(h.readings, locale)}</td>
             </tr>
           ))}
         </tbody>
@@ -214,39 +219,35 @@ function HourTable({ stats }: { stats: Statistics }) {
   )
 }
 
-const dayFormat = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })
-
-function dayLabel(date: string) {
-  return dayFormat.format(new Date(`${date}T12:00:00`))
+function weekday(date: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(`${date}T12:00:00`))
 }
 
 // Gleicher Aufbau wie das Stunden-Diagramm: eine Reihe, eine Farbe, Tooltip pro Balken
 function DayChart({ days }: { days: DailyOccupancy[] }) {
+  const { t, locale } = useI18n()
   const labelEvery = Math.ceil(days.length / 8)
   return (
     <div className="hour-chart">
-      <div className="hour-grid" aria-hidden="true">
-        {[100, 50, 0].map((line) => (
-          <span key={line} className="grid-line" style={{ bottom: `${line}%` }}>
-            <span>{line}</span>
-          </span>
-        ))}
-      </div>
+      <ChartGrid />
       <ol className="hour-bars" style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}>
         {days.map((d) => (
           <li
             key={d.date}
             className="hour-bar"
             tabIndex={0}
-            aria-label={`${dayLabel(d.date)}: ${d.occupancyPercent} Prozent belegt, ${d.tamperEvents} Vibrations-Meldungen, ${d.anomalyEvents} KI-Anomalien`}
+            aria-label={t('stats.dayAria', {
+              day: formatDay(d.date, locale),
+              percent: formatNumber(d.occupancyPercent, locale),
+              tamper: d.tamperEvents,
+              anomalies: d.anomalyEvents,
+            })}
           >
             <span className="bar-fill" style={{ height: `${Math.max(d.occupancyPercent, 0.5)}%` }}>
               <span className="bar-tooltip" role="tooltip">
-                <strong>{dayLabel(d.date)}</strong>
-                {d.occupancyPercent.toLocaleString('de-DE')} % belegt
-                <small>
-                  {d.tamperEvents} Vibration · {d.anomalyEvents} KI-Anomalien
-                </small>
+                <strong>{formatDay(d.date, locale)}</strong>
+                {t('stats.tooltipOccupied', { percent: formatNumber(d.occupancyPercent, locale) })}
+                <small>{t('stats.tooltipEvents', { tamper: d.tamperEvents, anomalies: d.anomalyEvents })}</small>
               </span>
             </span>
           </li>
@@ -256,7 +257,7 @@ function DayChart({ days }: { days: DailyOccupancy[] }) {
         {days.map((d, i) =>
           i % labelEvery === 0 ? (
             <span key={d.date} style={{ left: `${((i + 0.5) / days.length) * 100}%` }}>
-              {dayLabel(d.date).split(',')[0]}
+              {weekday(d.date, locale)}
             </span>
           ) : null,
         )}
@@ -266,22 +267,23 @@ function DayChart({ days }: { days: DailyOccupancy[] }) {
 }
 
 function DayTable({ days }: { days: DailyOccupancy[] }) {
+  const { t, locale } = useI18n()
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <th scope="col">Tag</th>
-            <th scope="col">Auslastung</th>
-            <th scope="col">Vibrations-Meldungen</th>
-            <th scope="col">KI-Anomalien</th>
+            <th scope="col">{t('stats.colDay')}</th>
+            <th scope="col">{t('stats.colOccupancy')}</th>
+            <th scope="col">{t('stats.tamper')}</th>
+            <th scope="col">{t('stats.anomalies')}</th>
           </tr>
         </thead>
         <tbody>
           {days.map((d) => (
             <tr key={d.date}>
-              <th scope="row">{dayLabel(d.date)}</th>
-              <td>{d.occupancyPercent.toLocaleString('de-DE')} %</td>
+              <th scope="row">{formatDay(d.date, locale)}</th>
+              <td>{formatNumber(d.occupancyPercent, locale)} %</td>
               <td>{d.tamperEvents}</td>
               <td>{d.anomalyEvents}</td>
             </tr>

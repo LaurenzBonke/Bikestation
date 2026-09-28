@@ -4,7 +4,8 @@ namespace bikestation.Models
     {
         PossibleTampering,
         SensorMismatch,
-        Anomaly
+        Anomaly,
+        BikeRemoved
     }
 
     public enum AlertSeverity
@@ -28,5 +29,11 @@ namespace bikestation.Models
 
         // Nur bei KI-Anomalien: wie ungewöhnlich die Messung war (0 = normal, 1 = sehr ungewöhnlich)
         public double? Score { get; set; }
+
+        // Betroffener Nutzer (Besitzer der Box zum Zeitpunkt der Meldung), sonst null
+        public int? UserId { get; set; }
+
+        // Hat der betroffene Nutzer die Meldung in der App gesehen und bestätigt?
+        public bool AcknowledgedByUser { get; set; }
     }
 }
