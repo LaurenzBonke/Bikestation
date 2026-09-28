@@ -1,0 +1,10 @@
+# Visual Studio / Build-Ausgaben
+.vs/
+bin/
+obj/
+*.user
+
+# Lokale SQLite-Datenbank
+*.db
+*.db-shm
+*.db-wal
