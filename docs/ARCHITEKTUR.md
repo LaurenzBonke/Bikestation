@@ -2,48 +2,101 @@
 
 Die Diagramme sind in Mermaid geschrieben und werden auf GitHub direkt als Grafik angezeigt.
 
+## Idee
+
+Die Station hat abschließbare **Boxen** (Prototyp: 3). Nutzer legen ein Konto an, wählen im Web-Dashboard eine
+freie Box und öffnen sie per Klick. Ein Servo-Riegel öffnet, das Fahrrad wird eingestellt, der Ultraschallsensor
+erkennt es, und die Box verriegelt automatisch. Zum Abholen öffnet der Nutzer die Box wieder per Klick. Wird ein
+Fahrrad entfernt, **ohne** dass die Box geöffnet wurde, bekommt der Nutzer sofort einen Alarm in der App.
+
+Das erfüllt die Grundaufgabe: freie Plätze erkennen und anzeigen, Manipulation erkennen (Vibration,
+KI-Anomalieerkennung, unerwartete Entnahme), Daten speichern und auswerten (Statistik, Prognose), keine
+personenbezogenen Daten (Konto = nur Benutzername und Passwort-Hash), barrierearm, in 3 Sprachen.
+
 ## Systemübersicht
 
 ```mermaid
 flowchart LR
-    subgraph Stellplatz["Stellplatz 1–3 (je 1x)"]
-        P[SEN0616<br/>Drucksensor] --> E[ESP32]
-        U[Ultraschall<br/>Grove V2.0] --> E
-        V[Vibrations-<br/>sensor] --> E
-        E --> G[LED grün]
-        E --> R[LED rot]
+    subgraph Box["Box 1–3"]
+        U[Ultraschall<br/>Grove V2.0] --> D
+        V[Vibration] --> D
+        D{{Raspberry Pi<br/>bikestation_agent.py<br/>oder ESP32}} --> S[Servo-Riegel]
+        D --> L[LED grün/rot]
     end
 
-    E -- "WLAN · HTTP POST<br/>X-Api-Key" --> API
+    D -- "HTTP POST /api/sensor-data<br/>X-Api-Key<br/>Antwort: boxState, lockOpen" --> API
 
-    subgraph Server["Server (Windows-PC, später Raspberry Pi 5)"]
+    subgraph Server["Server (Windows-PC, später Raspberry Pi / Proxmox)"]
         API[ASP.NET Core API<br/>Port 8080]
-        W1[Anomalieerkennung<br/>Hintergrunddienst]
-        W2[Datenaufbewahrung<br/>Hintergrunddienst]
+        SM[Box-Zustandsmaschine<br/>BoxService + BoxWorker]
+        AN[Anomalieerkennung<br/>Hintergrunddienst]
         DB[(SQLite)]
         UI[React-Dashboard<br/>wwwroot]
-        API --- DB
-        W1 --- DB
-        W2 --- DB
+        API --- SM --- DB
+        AN --- DB
         API --> UI
     end
 
-    AI[Python-KI<br/>Isolation Forest<br/>optional] -- "X-Api-Key" --> API
-    B[Browser<br/>Nutzer / Admin] -- "HTTP · JWT für Admin" --> API
+    N[Nutzer<br/>Handy/Browser] -- "JWT: Box buchen, öffnen, abholen" --> API
+    A[Admin] -- "JWT (Rolle Admin): Meldungen, Boxen freigeben" --> API
 ```
+
+## Zustände einer Box
+
+```mermaid
+stateDiagram-v2
+    [*] --> Free
+    Free --> OpenForParking: Nutzer bucht (Riegel öffnet)
+    OpenForParking --> Locked: Fahrrad ≤ 5 cm, 5 s lang erkannt (Riegel schließt)
+    OpenForParking --> Free: Abbrechen oder 2 min kein Fahrrad
+    Locked --> OpenForPickup: Besitzer klickt "Abholen" (Riegel öffnet)
+    OpenForPickup --> Free: Fahrrad 5 s weg (Riegel schließt)
+    OpenForPickup --> Locked: 2 min nicht entnommen
+    Locked --> Blocked: Fahrrad weg OHNE Öffnen → ALARM an Nutzer und Admin
+    Blocked --> Free: Admin prüft vor Ort und gibt frei
+```
+
+Abstände und Zeiten stehen in `appsettings.json` unter `Box` (kalibrierbar). Wartezeiten zählen erst ab dem
+Zustandswechsel, damit einzelne Messausreißer den Riegel nicht schalten. Buchen und Abholen sind nur möglich,
+wenn die Station verbunden ist.
 
 ## Datenmodell (ER-Diagramm)
 
 ```mermaid
 erDiagram
+    Users ||--o{ Parkings : "hat"
+    Slots ||--o{ Parkings : "hat"
     Slots ||--o{ SensorReadings : "hat"
     Slots ||--o{ Alerts : "hat"
+    Users |o--o{ Alerts : "betrifft"
 
+    Users {
+        int Id PK
+        string Username "eindeutig, 3–32 Zeichen"
+        string PasswordHash "PBKDF2"
+        string Role "User | Admin"
+        datetime CreatedAt
+    }
     Slots {
         int Id PK
         string Name
-        string Status "Unknown | Free | Occupied"
-        datetime LastUpdated "UTC"
+        string Status "Sensor: Unknown | Free | Occupied"
+        datetime LastUpdated "letzte Meldung (online/offline)"
+        string BoxState "Free | OpenForParking | Locked | OpenForPickup | Blocked"
+        datetime BoxStateChangedAt
+        datetime BikePresentSince "entprellt die Erkennung"
+        datetime BikeAbsentSince
+        int ActiveParkingId "laufender Parkvorgang"
+    }
+    Parkings {
+        int Id PK
+        int SlotId FK
+        int UserId FK
+        datetime BookedAt
+        datetime ParkedAt
+        datetime PickupRequestedAt
+        datetime EndedAt
+        string EndReason "Completed | Cancelled | TimedOut | BikeRemoved"
     }
     SensorReadings {
         int Id PK
@@ -57,75 +110,83 @@ erDiagram
     Alerts {
         int Id PK
         int SlotId FK
-        string Type "PossibleTampering | SensorMismatch | Anomaly"
+        int UserId "Besitzer der Box, sonst leer"
+        string Type "PossibleTampering | SensorMismatch | Anomaly | BikeRemoved"
         string Severity "Info | Warning | Critical"
         string Message
         double Score "nur KI, 0–1"
-        datetime Timestamp "UTC"
-        bool Resolved
-    }
-    AdminUsers {
-        int Id PK
-        string Username "eindeutig"
-        string PasswordHash "PBKDF2"
-        datetime CreatedAt
+        datetime Timestamp
+        bool Resolved "vom Admin erledigt"
+        bool AcknowledgedByUser "vom Nutzer gesehen"
     }
 ```
 
-Keine personenbezogenen Daten: gespeichert werden nur Stellplatz, Sensorwerte, Zeit und technische
-Ereignisse. Messwerte werden nach 90 Tagen automatisch gelöscht (`Retention:ReadingDays`).
+Datenschutz: Konten enthalten nur Benutzername und Passwort-Hash. Gespeichert werden sonst nur Box, Sensorwerte,
+Zeit und technische Ereignisse. Messwerte werden nach 90 Tagen automatisch gelöscht (`Retention:ReadingDays`).
 
-## Ablauf: Fahrrad wird abgestellt
+Datenbank-Updates: Passt die Datei nicht mehr zum Modell, sichert der `DatabaseInitializer` sie und übernimmt alle
+Daten spaltenweise in das neue Schema – auch im Produktionsbetrieb, ohne Datenverlust.
+
+## Ablauf: Box buchen, parken, abholen
 
 ```mermaid
 sequenceDiagram
-    participant S as Sensoren
-    participant E as ESP32 (Slot 2)
+    actor N as Nutzer
+    participant F as Dashboard
     participant A as API
-    participant D as Datenbank
-    participant B as Dashboard
+    participant P as Pi-Agent
+    participant B as Box (Servo, Sensor)
 
-    S->>E: Druck steigt, Ultraschall erkennt Objekt
-    E->>E: Druck ≥ Schwellwert → rote LED an
-    E->>A: POST /api/sensor-data {slotId:2, pressure:842, distance:27, vibration:false}
-    A->>A: API-Key und Werte prüfen
-    A->>D: Messwert speichern, Slot 2 = Occupied
-    A-->>E: {occupied:true}
-    B->>A: GET /api/slots (alle 3 s)
-    A-->>B: Stellplatz 2 – Belegt
+    N->>F: "Box öffnen" (Box 2)
+    F->>A: POST /api/boxes/2/book (JWT)
+    A->>A: Box 2: Free → OpenForParking
+    P->>A: POST /api/sensor-data {slotId:2, distance:80}
+    A-->>P: {boxState: OpenForParking, lockOpen: true}
+    P->>B: Servo öffnen
+    N->>B: Fahrrad einstellen
+    loop jede Sekunde
+        P->>A: {distance: 3}
+    end
+    A->>A: 5 s ≤ 5 cm → Locked
+    A-->>P: {lockOpen: false}
+    P->>B: Servo schließen
+    F->>A: GET /api/me (alle 2 s) → "Dein Fahrrad ist sicher verriegelt"
+    N->>F: "Box öffnen und Fahrrad abholen"
+    F->>A: POST /api/boxes/2/pickup
+    A-->>P: {lockOpen: true} → Servo öffnet
+    N->>B: Fahrrad entnehmen
+    A->>A: 5 s leer → Free, Parkvorgang "Completed"
+    A-->>P: {lockOpen: false} → Servo schließt
 ```
 
-## Ablauf: Manipulation
+## Ablauf: Fahrrad unerwartet entfernt
 
 ```mermaid
 sequenceDiagram
-    participant E as ESP32 (Slot 2)
+    participant P as Pi-Agent
     participant A as API
-    participant W as Anomalieerkennung
-    participant D as Datenbank
-    participant B as Dashboard
+    participant F as Dashboard (Nutzer)
+    participant AD as Admin
 
-    E->>A: POST /api/sensor-data {vibration:true, pressure:520, distance:44}
-    A->>D: Messwert + Meldung "Mögliche Manipulation" (Regel, mit Cooldown)
-    W->>D: neue Messwerte lesen (alle 10 s)
-    W->>W: mit gelerntem Normalverhalten von Slot 2 vergleichen (robuster Z-Score)
-    W->>D: Meldung "KI-Anomalie" mit Score und Begründung
-    B->>A: GET /api/alerts
-    A-->>B: ⚠ Ungewöhnliche Aktivität an Stellplatz 2
+    Note over A: Box 2 ist Locked
+    P->>A: {distance: 80} (Rad weg, Box nicht geöffnet)
+    A->>A: 3 s leer → Blocked, Parkvorgang "BikeRemoved"
+    A->>A: Meldung BikeRemoved (Critical, UserId = Besitzer)
+    F->>A: GET /api/me
+    A-->>F: Alarm → rotes Banner "Dein Fahrrad wurde unerwartet entfernt!"
+    AD->>A: prüft vor Ort, POST /api/boxes/2/release → Free
 ```
 
 ## Anomalieerkennung
 
-Zwei Stufen, damit es nicht nur ein „wenn Vibration, dann Alarm“ ist:
+Mehrere Stufen, damit es nicht nur ein „wenn Vibration, dann Alarm“ ist:
 
 | Stufe | Wo | Wie |
 |---|---|---|
-| Regel | `SensorDataService` | Vibration → Meldung „Mögliche Manipulation“ (max. 1 pro Minute und Platz) |
-| Statistisch lernend | `AnomalyDetector` + `AnomalyDetectionWorker` im Backend | Lernt pro Platz und Zustand (frei/belegt) Median und Streuung (MAD) von Druck, Abstand und deren Änderungen. Robuster Z-Score ≥ 6 → Anomalie. Vibration allein reicht nicht, verstärkt aber echte Abweichungen. |
-| Maschinelles Lernen (optional) | `ai/anomaly_service.py` | Isolation Forest (scikit-learn) auf denselben Merkmalen, meldet über `POST /api/anomalies` |
-
-Erkannt werden z. B. Rütteln mit Druckabfall bei stehendem Rad oder widersprüchliche Sensoren
-(Druck „belegt“, Ultraschall „leer“). Normales Kommen und Gehen löst nichts aus.
+| Regel | `SensorDataService` | Vibration → Meldung „Mögliche Manipulation“ (max. 1 pro Minute und Box), geht auch an den Besitzer |
+| Zustand | `BoxService` | Fahrrad verschwindet aus verriegelter Box → Alarm „unerwartet entfernt“ |
+| Statistisch lernend | `AnomalyDetector` + `AnomalyDetectionWorker` | Lernt pro Box und Zustand Median und Streuung (MAD) von Druck, Abstand und deren Änderungen. Robuster Z-Score ≥ 6 → KI-Anomalie. Vibration allein reicht nicht. |
+| Maschinelles Lernen (optional) | `ai/anomaly_service.py` | Isolation Forest (scikit-learn), meldet über `POST /api/anomalies` |
 
 ## Auslastungsprognose
 
@@ -138,10 +199,12 @@ Erkannt werden z. B. Rütteln mit Druckabfall bei stehendem Rad oder widersprüc
 | Maßnahme | Umsetzung |
 |---|---|
 | Geräte-Authentifizierung | API-Key im Header `X-Api-Key`, Vergleich in konstanter Zeit |
-| Admin-Authentifizierung | JWT (HMAC-SHA256, 60 min), Rolle `Admin` wird geprüft |
-| Passwörter | nur PBKDF2-Hash, Admin-Anlage nur per Kommandozeile |
-| Brute Force | Rate Limiting: 5 Login-Versuche pro Minute und IP |
-| Eingabevalidierung | Wertebereiche für alle Sensorwerte, sonst 400 |
+| Nutzer-Authentifizierung | JWT (HMAC-SHA256, 60 min), Rollen `User` / `Admin` |
+| Rechte | Nur der Besitzer öffnet seine Box; Admin-Funktionen nur mit Rolle `Admin`; max. 1 Box pro Nutzer |
+| Passwörter | nur PBKDF2-Hash, mind. 8 Zeichen; Admins nur per Kommandozeile |
+| Brute Force / Spam | Rate Limiting: 5 Logins pro Minute, 5 Registrierungen pro 10 Minuten und IP |
+| Eingabevalidierung | Wertebereiche für Sensorwerte, Benutzername nur `A–Z a–z 0–9 _ . -` |
+| Physische Sicherheit | Riegel folgt nur der API; ohne Verbindung bleibt er, wie er ist; unerwartete Entnahme → Alarm + Sperre |
 | Fehlerbehandlung | einheitliche ProblemDetails, keine Stacktraces nach außen |
 | HTTP-Header | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` |
 | Geheimnisse | nicht im Repo, zufällig erzeugt, per Umgebungsvariable |
@@ -149,11 +212,13 @@ Erkannt werden z. B. Rütteln mit Druckabfall bei stehendem Rad oder widersprüc
 
 ## Tests
 
-`api/bikestation/bikestation.Tests`: Integrationstests starten die echte API mit eigener SQLite-Datei
-(API-Key, Validierung, Belegung, Meldungen, JWT, Rate Limit, KI-Anomalien, Statistik, Prognose,
-Datenaufbewahrung, veraltete Datenbank) und Unit-Tests für den `AnomalyDetector`.
+| Bereich | Wo | Umfang |
+|---|---|---|
+| Backend | `api/bikestation/bikestation.Tests` | 56 Tests: Konten, Boxen-Ablauf, Alarm, Rechte, Zeitlimits, Offline, API-Key, Validierung, KI, Statistik, Prognose, Migration |
+| Pi-Agent | `pi/test_agent.py` | 7 Tests inkl. Ende-zu-Ende gegen das echte Backend (simulierter Servo) |
+| Server-Update | `deploy/update-server.ps1` | an separatem Test-Server geprüft (Update mit Datenerhalt, Abbruch bei kaputter Version) |
 
 ```powershell
-cd api/bikestation
-dotnet test
+cd api/bikestation; dotnet test
+cd pi; python -m unittest test_agent.py -v
 ```
