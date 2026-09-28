@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 
-export type Route = 'overview' | 'admin'
+export type Route = 'overview' | 'statistics' | 'admin'
 
 function currentRoute(): Route {
-  return window.location.hash.startsWith('#admin') ? 'admin' : 'overview'
+  const hash = window.location.hash
+  if (hash.startsWith('#admin')) return 'admin'
+  if (hash.startsWith('#statistik')) return 'statistics'
+  return 'overview'
 }
 
 // Einfaches Hash-Routing (#admin), damit wir keine extra Router-Bibliothek brauchen

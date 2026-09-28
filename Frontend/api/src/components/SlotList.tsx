@@ -1,11 +1,6 @@
 import type { Slot } from '../api'
 import { formatTime, pad2 } from '../format'
-
-const statusClass: Record<Slot['status'], string> = {
-  Free: 'free',
-  Occupied: 'taken',
-  Unknown: 'unknown',
-}
+import { displayStatus, statusText } from '../slotStatus'
 
 export default function SlotList({ slots }: { slots: Slot[] }) {
   return (
@@ -20,7 +15,7 @@ export default function SlotList({ slots }: { slots: Slot[] }) {
 
       <ul className="spot-list">
         {slots.map((slot) => (
-          <li key={slot.id} className={`spot-row ${slot.possibleTampering ? 'has-warning' : ''}`}>
+          <li key={slot.id} className={`spot-row ${slot.possibleTampering || slot.hasAnomaly ? 'has-warning' : ''}`}>
             <span className="spot-number" aria-hidden="true">
               {pad2(slot.id)}
             </span>
@@ -35,13 +30,23 @@ export default function SlotList({ slots }: { slots: Slot[] }) {
               <span className="spot-name">{slot.name}</span>
               <SensorValues slot={slot} />
             </span>
-            <span className={`spot-status ${statusClass[slot.status]}`}>
+            <span className={`spot-status ${displayStatus(slot)}`}>
               <span aria-hidden="true"></span>
-              {slot.status === 'Unknown' ? 'Keine Daten' : slot.statusText}
+              {statusText[displayStatus(slot)]}
             </span>
             {slot.possibleTampering && (
               <p className="tamper-warning" role="alert">
                 <span aria-hidden="true">⚠</span> Mögliche Manipulation erkannt
+              </p>
+            )}
+            {slot.hasAnomaly && (
+              <p className="tamper-warning" role="alert">
+                <span aria-hidden="true">⚠</span> Ungewöhnliche Aktivität (KI-Erkennung)
+              </p>
+            )}
+            {displayStatus(slot) === 'offline' && (
+              <p className="offline-note">
+                Sensor meldet sich nicht – letzter Stand {formatTime(slot.lastUpdated)}. Status evtl. veraltet.
               </p>
             )}
           </li>

@@ -1,9 +1,11 @@
 import type { Slot } from '../api'
+import { displayStatus, type DisplayStatus } from '../slotStatus'
 
-const lightClass: Record<Slot['status'], string> = {
-  Free: 'is-available',
-  Occupied: 'is-occupied',
-  Unknown: 'is-unknown',
+const lightClass: Record<DisplayStatus, string> = {
+  free: 'is-available',
+  taken: 'is-occupied',
+  offline: 'is-unknown',
+  unknown: 'is-unknown',
 }
 
 // Grafische Nachbildung der Station – rein dekorativ, die Textinfos stehen in der Liste darunter
@@ -13,7 +15,7 @@ export default function OccupancyFrame({ slots }: { slots: Slot[] }) {
       <span className="frame-label">STATION</span>
       <div className="status-lights">
         {slots.map((slot) => (
-          <span key={slot.id} className={`status-light ${lightClass[slot.status]}`}>
+          <span key={slot.id} className={`status-light ${lightClass[displayStatus(slot)]}`}>
             {slot.id}
           </span>
         ))}

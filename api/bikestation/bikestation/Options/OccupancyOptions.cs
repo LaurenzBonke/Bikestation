@@ -10,5 +10,8 @@ namespace bikestation.Options
 
         // Innerhalb dieses Zeitraums wird kein zweiter Manipulations-Alert für denselben Slot erzeugt
         public int TamperAlertCooldownSeconds { get; set; } = 60;
+
+        // Dasselbe für KI-Anomalien
+        public int AnomalyAlertCooldownSeconds { get; set; } = 300;
     }
 }

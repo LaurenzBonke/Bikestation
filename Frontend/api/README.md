@@ -1,7 +1,8 @@
 # Smart Bikestation – Dashboard (React)
 
 React-Dashboard für die Smart Bikestation. Es zeigt die Live-Belegung der 3 Stellplätze,
-die aktuellen Sensorwerte und offene Meldungen (z. B. „Mögliche Manipulation erkannt“).
+die aktuellen Sensorwerte, offene Meldungen (Vibration und KI-Anomalien), ob ein Sensor offline ist,
+und eine Statistik mit Auslastung nach Uhrzeit.
 
 Alle Daten kommen aus der C#-API (`api/bikestation`). Eine eigene Datenbank hat das Frontend nicht.
 
@@ -46,7 +47,8 @@ Einen Admin legt man im Backend an (siehe `api/bikestation/README.md`).
 | `src/components/Dashboard.tsx` | Übersicht: freie Plätze, Stationsgrafik |
 | `src/components/SlotList.tsx` | Liste der Stellplätze mit Sensorwerten |
 | `src/components/AlertsPanel.tsx` | Offene Meldungen |
-| `src/components/AdminPage.tsx` | Admin-Login und Meldungen bearbeiten |
+| `src/components/StatisticsPage.tsx` | Statistik: Auslastung nach Uhrzeit, je Platz, Ereignisse |
+| `src/components/AdminPage.tsx` | Admin-Login, Meldungen bearbeiten, Demo-Daten |
 | `src/useAuth.ts` | Login, Token-Speicherung, automatisches Abmelden |
 
 ## Barrierefreiheit

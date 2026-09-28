@@ -16,7 +16,9 @@ export type Slot = {
   status: SlotStatus
   statusText: string
   lastUpdated: string | null
+  isOnline: boolean
   possibleTampering: boolean
+  hasAnomaly: boolean
   latestReading: SensorReading | null
 }
 
@@ -30,6 +32,33 @@ export type Alert = {
   message: string
   timestamp: string
   resolved: boolean
+  score: number | null
+}
+
+export type HourlyOccupancy = {
+  hour: number
+  occupancyPercent: number
+  readings: number
+}
+
+export type SlotStatistics = {
+  slotId: number
+  name: string
+  occupancyPercent: number
+  tamperEvents: number
+  anomalyEvents: number
+}
+
+export type Statistics = {
+  periodDays: number
+  totalReadings: number
+  occupancyPercent: number
+  busiestHour: number | null
+  tamperEvents: number
+  anomalyEvents: number
+  openAlerts: number
+  occupancyByHour: HourlyOccupancy[]
+  slots: SlotStatistics[]
 }
 
 export type LoginResponse = {
@@ -74,9 +103,12 @@ async function errorMessage(response: Response): Promise<string> {
 export const api = {
   getSlots: (signal?: AbortSignal) => request<Slot[]>('/slots', { signal }),
   getAlerts: (signal?: AbortSignal) => request<Alert[]>('/alerts', { signal }),
+  getStatistics: (days: number, signal?: AbortSignal) => request<Statistics>(`/statistics?days=${days}`, { signal }),
 
   login: (username: string, password: string) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   getMe: (token: string) => request<{ username: string }>('/auth/me', {}, token),
   resolveAlert: (id: number, token: string) => request<void>(`/alerts/${id}/resolve`, { method: 'POST' }, token),
+  generateDemoData: (days: number, token: string) =>
+    request<{ readings: number }>(`/demo/generate?days=${days}`, { method: 'POST' }, token),
 }

@@ -29,6 +29,13 @@ export default function Header({ connected, route }: HeaderProps) {
           Übersicht
         </a>
         <a
+          className={`nav-link ${route === 'statistics' ? 'active' : ''}`}
+          href="#statistik"
+          aria-current={route === 'statistics' ? 'page' : undefined}
+        >
+          Statistik
+        </a>
+        <a
           className={`nav-link ${route === 'admin' ? 'active' : ''}`}
           href="#admin"
           aria-current={route === 'admin' ? 'page' : undefined}

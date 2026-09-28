@@ -1,0 +1,27 @@
+// Konfiguration für EINEN Stellplatz.
+// Diese Datei nach "config.h" kopieren und anpassen. config.h steht in .gitignore,
+// damit WLAN-Passwort und API-Key nicht im Repo landen.
+
+#pragma once
+
+// ---------- Pro ESP32 unterschiedlich ----------
+#define SLOT_ID 1  // 1, 2 oder 3
+
+// ---------- WLAN ----------
+#define WIFI_SSID "Bikestation-WLAN"
+#define WIFI_PASSWORD "HIER-WLAN-PASSWORT"
+
+// ---------- API auf dem Raspberry Pi (bzw. eurem Laptop beim Testen) ----------
+// IP-Adresse des Rechners, auf dem die C#-API läuft. NICHT "localhost" – das wäre der ESP32 selbst.
+#define API_URL "http://192.168.0.50:5137/api/sensor-data"
+// Muss mit Devices:ApiKey der API übereinstimmen
+#define API_KEY "dev-geraete-key-nur-lokal"
+
+// ---------- Sensoren ----------
+// ANNAHME: Startwert. Mit dem seriellen Monitor die echten Werte ablesen (frei / mit Fahrrad)
+// und einen Wert dazwischen wählen. Sollte zu Occupancy:PressureThreshold der API passen.
+#define PRESSURE_THRESHOLD 500
+
+// Vibrationssensor: 1 = Ausgang geht bei Vibration auf HIGH, 0 = geht auf LOW.
+// Hängt vom genauen Modul ab – im seriellen Monitor prüfen ("vib=1" beim Klopfen).
+#define VIBRATION_ACTIVE_HIGH 1
