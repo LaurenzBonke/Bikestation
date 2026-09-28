@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard-test",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd Frontend\\api && set API_URL=http://localhost:5199&& npx vite --port 5174 --strictPort"],
+      "port": 5174
+    }
+  ]
+}
