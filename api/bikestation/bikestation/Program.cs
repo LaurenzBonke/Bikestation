@@ -43,6 +43,11 @@ builder.Services.AddScoped<StatisticsService>();
 builder.Services.AddScoped<DemoDataService>();
 builder.Services.AddScoped<ForecastService>();
 
+// Abschließbare Boxen: Zustandsmaschine und Zeitlimits
+builder.Services.Configure<BoxOptions>(builder.Configuration.GetSection(BoxOptions.SectionName));
+builder.Services.AddScoped<BoxService>();
+builder.Services.AddHostedService<BoxWorker>();
+
 // Hintergrunddienste: statistische Anomalieerkennung und Löschen alter Messwerte
 builder.Services.Configure<AnomalyOptions>(builder.Configuration.GetSection(AnomalyOptions.SectionName));
 builder.Services.AddSingleton<AnomalyDetectionWorker>();
@@ -89,6 +94,10 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
+    // Konten anlegen: max. 5 pro 10 Minuten und IP, gegen massenhaft erzeugte Konten
+    options.AddPolicy("register", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(10) }));
 });
 
 // Erlaubt dem Web-Dashboard (anderer Port) Zugriff auf die API

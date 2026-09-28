@@ -18,12 +18,12 @@ namespace bikestation.Services
         ILogger<AuthService> logger)
     {
         private readonly JwtOptions _options = options.Value;
-        private readonly PasswordHasher<AdminUser> _hasher = new();
+        private readonly PasswordHasher<User> _hasher = new();
 
         // Gibt null zurück, wenn Benutzername oder Passwort falsch sind
         public async Task<LoginResponse?> LoginAsync(LoginRequest request)
         {
-            var user = await db.AdminUsers.FirstOrDefaultAsync(u => u.Username == request.Username);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
             if (user is null)
             {
                 logger.LogWarning("Fehlgeschlagener Login für unbekannten Benutzer");
@@ -48,20 +48,37 @@ namespace bikestation.Services
             return CreateToken(user);
         }
 
-        public async Task CreateAdminAsync(string username, string password)
+        // Neues Nutzerkonto (Rolle User). Gibt null zurück, wenn der Name schon vergeben ist.
+        public async Task<LoginResponse?> RegisterAsync(RegisterRequest request)
         {
-            if (await db.AdminUsers.AnyAsync(u => u.Username == username))
+            var username = request.Username.Trim();
+            if (await db.Users.AnyAsync(u => u.Username.ToLower() == username.ToLower()))
             {
-                throw new InvalidOperationException($"Admin '{username}' existiert bereits.");
+                return null;
             }
 
-            var user = new AdminUser { Username = username, CreatedAt = DateTime.UtcNow };
+            var user = new User { Username = username, Role = UserRole.User, CreatedAt = DateTime.UtcNow };
+            user.PasswordHash = _hasher.HashPassword(user, request.Password);
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Neues Nutzerkonto: {Username}", user.Username);
+            return CreateToken(user);
+        }
+
+        public async Task CreateAdminAsync(string username, string password)
+        {
+            if (await db.Users.AnyAsync(u => u.Username == username))
+            {
+                throw new InvalidOperationException($"Benutzer '{username}' existiert bereits.");
+            }
+
+            var user = new User { Username = username, Role = UserRole.Admin, CreatedAt = DateTime.UtcNow };
             user.PasswordHash = _hasher.HashPassword(user, password);
-            db.AdminUsers.Add(user);
+            db.Users.Add(user);
             await db.SaveChangesAsync();
         }
 
-        private LoginResponse CreateToken(AdminUser user)
+        private LoginResponse CreateToken(User user)
         {
             var expiresAt = DateTime.UtcNow.AddMinutes(_options.ExpiresMinutes);
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));
@@ -73,12 +90,12 @@ namespace bikestation.Services
                 [
                     new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                     new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-                    new Claim(ClaimTypes.Role, "Admin")
+                    new Claim(ClaimTypes.Role, user.Role.ToString())
                 ],
                 expires: expiresAt,
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
-            return new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), expiresAt, user.Username);
+            return new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), expiresAt, user.Username, user.Role);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 
 namespace bikestation.Tests
@@ -60,29 +61,47 @@ namespace bikestation.Tests
         }
 
         [Fact]
-        public async Task Veraltete_Datenbank_wird_gesichert_und_neu_angelegt()
+        public async Task Veraltete_Datenbank_wird_ohne_Datenverlust_umgestellt()
         {
-            using var app = new BikestationApp("Development");
+            // Produktionsmodus wie auf dem Server: dort darf beim Update nichts verloren gehen
+            using var app = new BikestationApp("Production");
+            var hash = new PasswordHasher<object>().HashPassword(new object(), "altes-admin-passwort");
 
-            // Datenbank im Format der allerersten Version anlegen (ohne AdminUsers, ohne Alerts.Score)
+            // Datenbank im Format der vorherigen Version: AdminUsers statt Users, Slots ohne Box-Spalten
             using (var connection = new SqliteConnection($"Data Source={app.DatabaseFile}"))
             {
                 connection.Open();
                 using var command = connection.CreateCommand();
-                command.CommandText = """
-                    CREATE TABLE Slots (Id INTEGER PRIMARY KEY, Name TEXT, Status TEXT, LastUpdated TEXT);
-                    CREATE TABLE Alerts (Id INTEGER PRIMARY KEY, SlotId INTEGER, Type TEXT, Severity TEXT,
-                                         Message TEXT, Timestamp TEXT, Resolved INTEGER);
+                command.CommandText = $"""
+                    CREATE TABLE Slots (Id INTEGER PRIMARY KEY, Name TEXT NOT NULL, Status TEXT NOT NULL, LastUpdated TEXT);
+                    CREATE TABLE SensorReadings (Id INTEGER PRIMARY KEY, SlotId INTEGER NOT NULL, Pressure INTEGER NOT NULL,
+                        Distance INTEGER NOT NULL, Vibration INTEGER NOT NULL, Occupied INTEGER NOT NULL, Timestamp TEXT NOT NULL);
+                    CREATE TABLE Alerts (Id INTEGER PRIMARY KEY, SlotId INTEGER NOT NULL, Type TEXT NOT NULL, Severity TEXT NOT NULL,
+                        Message TEXT NOT NULL, Timestamp TEXT NOT NULL, Resolved INTEGER NOT NULL, Score REAL);
+                    CREATE TABLE AdminUsers (Id INTEGER PRIMARY KEY, Username TEXT NOT NULL, PasswordHash TEXT NOT NULL, CreatedAt TEXT NOT NULL);
+                    INSERT INTO Slots VALUES (1, 'Stellplatz 1', 'Occupied', '2026-09-28 10:00:00'), (2, 'Stellplatz 2', 'Free', NULL), (3, 'Stellplatz 3', 'Free', NULL);
+                    INSERT INTO SensorReadings VALUES (1, 1, 850, 28, 0, 1, '2026-09-28 10:00:00'), (2, 2, 40, 80, 0, 0, '2026-09-28 10:00:00');
+                    INSERT INTO Alerts VALUES (1, 2, 'PossibleTampering', 'Warning', 'Mögliche Manipulation an Stellplatz 2 erkannt.', '2026-09-28 10:00:00', 0, NULL);
+                    INSERT INTO AdminUsers VALUES (1, 'admin', '{hash}', '2026-09-28 09:00:00');
                     """;
                 command.ExecuteNonQuery();
             }
             SqliteConnection.ClearAllPools();
 
-            var response = await app.CreateClient().GetAsync("/api/alerts");
+            var client = app.CreateClient();
+            var login = await client.PostAsJsonAsync("/api/auth/login", new { username = "admin", password = "altes-admin-passwort" });
 
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            // Admin-Konto übernommen, jetzt mit Rolle Admin
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+            Assert.Equal("Admin", (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("role").GetString());
+            // Messwerte und Meldungen übernommen, Boxen starten als frei
+            Assert.Equal(2, app.WithDb(db => db.SensorReadings.Count()));
+            Assert.Single((await client.GetFromJsonAsync<JsonElement[]>("/api/alerts"))!);
+            var boxes = await client.GetFromJsonAsync<JsonElement[]>("/api/boxes");
+            Assert.All(boxes!, b => Assert.Equal("Free", b.GetProperty("state").GetString()));
+            // Sicherung der alten Datei liegt daneben
             Assert.Single(Directory.GetFiles(Path.GetDirectoryName(app.DatabaseFile)!,
-                Path.GetFileName(app.DatabaseFile) + ".veraltet-*"));
+                Path.GetFileName(app.DatabaseFile) + ".vor-update-*"));
         }
     }
 }

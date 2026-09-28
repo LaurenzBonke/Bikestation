@@ -54,7 +54,8 @@ namespace bikestation.Services
                 s.Status == SlotStatus.Occupied ? "Belegt" : s.Status == SlotStatus.Free ? "Frei" : "Unbekannt",
                 s.LastUpdated,
                 s.LastUpdated != null && s.LastUpdated >= onlineSince,
-                s.Alerts.Any(a => a.Type == AlertType.PossibleTampering && !a.Resolved),
+                s.BoxState,
+                s.Alerts.Any(a => (a.Type == AlertType.PossibleTampering || a.Type == AlertType.BikeRemoved) && !a.Resolved),
                 s.Alerts.Any(a => a.Type == AlertType.Anomaly && !a.Resolved),
                 s.Readings
                     .OrderByDescending(r => r.Timestamp)

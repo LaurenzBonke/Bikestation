@@ -9,13 +9,14 @@ namespace bikestation.Services
 {
     public class SensorDataService(
         BikestationDbContext db,
+        BoxService boxService,
         IOptions<OccupancyOptions> options,
         ILogger<SensorDataService> logger)
     {
         private readonly OccupancyOptions _options = options.Value;
 
         // Gibt null zurück, wenn der Slot nicht existiert
-        public async Task<SensorDataResponse?> ProcessAsync(SensorDataRequest request)
+        public Task<SensorDataResponse?> ProcessAsync(SensorDataRequest request) => BoxService.LockedAsync(async () =>
         {
             var slot = await db.Slots.FindAsync(request.SlotId!.Value);
             if (slot is null)
@@ -24,15 +25,16 @@ namespace bikestation.Services
             }
 
             var now = DateTime.UtcNow;
+            var distance = request.Distance!.Value;
 
-            // Drucksensor ist der primäre Belegungssensor
-            var occupied = request.Pressure!.Value >= _options.PressureThreshold;
+            // Belegt, wenn der Ultraschallsensor ein Fahrrad direkt vor sich sieht oder der Drucksensor Last meldet
+            var occupied = boxService.IsBikePresent(distance) || request.Pressure!.Value >= _options.PressureThreshold;
 
             db.SensorReadings.Add(new SensorReading
             {
                 SlotId = slot.Id,
-                Pressure = request.Pressure.Value,
-                Distance = request.Distance!.Value,
+                Pressure = request.Pressure!.Value,
+                Distance = distance,
                 Vibration = request.Vibration!.Value,
                 Occupied = occupied,
                 Timestamp = now
@@ -46,6 +48,9 @@ namespace bikestation.Services
             slot.Status = newStatus;
             slot.LastUpdated = now;
 
+            // Box-Zustand (Riegel, Alarm) anhand der Messung weiterschalten
+            await boxService.OnReadingAsync(slot, distance, now);
+
             if (request.Vibration.Value)
             {
                 await AddTamperAlertIfNeededAsync(slot, now);
@@ -53,8 +58,8 @@ namespace bikestation.Services
 
             await db.SaveChangesAsync();
 
-            return new SensorDataResponse(slot.Id, occupied, slot.Status);
-        }
+            return new SensorDataResponse(slot.Id, occupied, slot.Status, slot.BoxState, slot.LockOpen);
+        });
 
         // Einfache Regel für Sofort-Meldungen – die eigentliche KI-Anomalieerkennung kommt separat
         private async Task AddTamperAlertIfNeededAsync(Slot slot, DateTime now)
@@ -74,6 +79,8 @@ namespace bikestation.Services
             db.Alerts.Add(new Alert
             {
                 SlotId = slot.Id,
+                // Steht ein Fahrrad in der Box, bekommt auch der Besitzer die Meldung in der App
+                UserId = await boxService.OwnerOfAsync(slot),
                 Type = AlertType.PossibleTampering,
                 Severity = AlertSeverity.Warning,
                 Message = $"Mögliche Manipulation an {slot.Name} erkannt.",

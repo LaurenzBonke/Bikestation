@@ -9,6 +9,7 @@ namespace bikestation.Services
 {
     public class AnomalyService(
         BikestationDbContext db,
+        BoxService boxService,
         IOptions<OccupancyOptions> options,
         ILogger<AnomalyService> logger)
     {
@@ -44,6 +45,7 @@ namespace bikestation.Services
                 Severity = score >= 0.8 ? AlertSeverity.Critical : AlertSeverity.Warning,
                 Message = $"Ungewöhnliche Aktivität an {slot.Name}{reason}.",
                 Score = Math.Round(score, 2),
+                UserId = await boxService.OwnerOfAsync(slot),
                 Timestamp = now
             };
             db.Alerts.Add(alert);

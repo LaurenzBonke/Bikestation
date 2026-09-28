@@ -11,6 +11,7 @@ namespace bikestation.Dtos
         string StatusText,
         DateTime? LastUpdated,
         bool IsOnline,
+        BoxState BoxState,
         bool PossibleTampering,
         bool HasAnomaly,
         SensorReadingDto? LatestReading);
@@ -28,5 +29,6 @@ namespace bikestation.Dtos
     // Messwert mit Slot-ID, z. B. für den KI-Dienst
     public record SlotReadingDto(long Id, int SlotId, int Pressure, int Distance, bool Vibration, bool Occupied, DateTime Timestamp);
 
-    public record SensorDataResponse(int SlotId, bool Occupied, SlotStatus Status);
+    // Antwort an das Gerät: enthält direkt, ob der Riegel offen sein soll
+    public record SensorDataResponse(int SlotId, bool Occupied, SlotStatus Status, BoxState BoxState, bool LockOpen);
 }
