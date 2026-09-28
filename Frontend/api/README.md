@@ -1,38 +1,49 @@
-# Pedal bike station
+# Smart Bikestation – Dashboard (React)
 
-## Local database setup
+React-Dashboard für die Smart Bikestation. Es zeigt die Live-Belegung der 3 Stellplätze,
+die aktuellen Sensorwerte und offene Meldungen (z. B. „Mögliche Manipulation erkannt“).
 
-1. Start MySQL from the XAMPP Control Panel.
-2. Open phpMyAdmin, choose **Import**, select `database.sql`, and run it. The script creates and seeds the `bikestation` database.
-3. The local defaults are MySQL host `127.0.0.1`, port `3306`, user `root`, and an empty password. Set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, or `DB_PASSWORD` in the PHP process environment if your local MySQL credentials differ.
-4. From this folder, start the PHP API server:
+Alle Daten kommen aus der C#-API (`api/bikestation`). Eine eigene Datenbank hat das Frontend nicht.
+
+## Starten (Entwicklung)
+
+1. Backend starten (Visual Studio oder im Ordner `api/bikestation/bikestation`):
 
    ```powershell
-   & 'C:\xampp\php\php.exe' -S 127.0.0.1:8000
+   dotnet run
    ```
 
-5. In a second terminal, start the frontend:
+   Die API läuft dann auf `http://localhost:5137`.
+
+2. Frontend starten (in diesem Ordner):
 
    ```powershell
+   npm install
    npm run dev
    ```
 
-The Vite development server proxies `/api.php` to PHP. Keep both servers running while using the app.
+   Das Dashboard läuft auf `http://localhost:5173`. Der Vite-Dev-Server leitet alle Aufrufe
+   auf `/api` an das Backend weiter (siehe `vite.config.ts`).
 
-## Create the first admin
+   Läuft die API woanders (z. B. auf dem Raspberry Pi), die Umgebungsvariable `API_URL` setzen:
 
-Run this once in a terminal from this folder, replacing the email with the admin's address:
+   ```powershell
+   $env:API_URL = "http://192.168.0.50:5137"; npm run dev
+   ```
 
-```powershell
-& 'C:\xampp\php\php.exe' .\create_admin.php admin@example.com
-```
+## Aufbau
 
-Enter a password of at least 12 characters when prompted. Only its password hash is stored. The admin page is available from the **Admin** link in the top navigation. Admin sessions use HTTP-only cookies and a CSRF token for changes.
+| Datei | Aufgabe |
+|---|---|
+| `src/api.ts` | Typen und Aufrufe der REST-API |
+| `src/useStationData.ts` | Holt Slots und Meldungen alle 3 Sekunden |
+| `src/components/Dashboard.tsx` | Übersicht: freie Plätze, Stationsgrafik |
+| `src/components/SlotList.tsx` | Liste der Stellplätze mit Sensorwerten |
+| `src/components/AlertsPanel.tsx` | Offene Meldungen |
 
-## Data model
+## Barrierefreiheit
 
-- `stations` stores public station details and opening hours.
-- `parking_spots` stores each spot's availability; the public free count is derived from these rows.
-- `admins` stores administrator emails and password hashes.
-
-The admin screen edits station details and each existing spot's status. To change a station's number of physical spots, update `parking_spots` in phpMyAdmin; the admin screen intentionally does not add or delete physical spots.
+- Status wird immer auch als Text angezeigt („Stellplatz 1 – Frei“), nicht nur über Farbe
+- Textkontrast mindestens 4.5:1, Schriftgrößen ab 11 px
+- „Zum Inhalt springen“-Link und sichtbarer Tastaturfokus
+- Änderungen der freien Plätze werden Screenreadern angesagt (`aria-live`)
