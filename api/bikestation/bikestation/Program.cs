@@ -1,7 +1,12 @@
+using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using bikestation;
 using bikestation.Data;
 using bikestation.Options;
 using bikestation.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +28,46 @@ builder.Services.Configure<OccupancyOptions>(builder.Configuration.GetSection(Oc
 builder.Services.AddScoped<SensorDataService>();
 builder.Services.AddScoped<SlotService>();
 builder.Services.AddScoped<AlertService>();
+builder.Services.AddScoped<AuthService>();
+
+// JWT-Authentifizierung für Admin-Funktionen
+var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
+builder.Services.Configure<JwtOptions>(jwtSection);
+var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
+if (Encoding.UTF8.GetByteCount(jwtOptions.Key) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key fehlt oder ist kürzer als 32 Zeichen. Per Umgebungsvariable Jwt__Key setzen.");
+}
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Claim-Namen wie im Token lassen (z. B. "unique_name")
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
+        };
+    });
+builder.Services.AddAuthorization();
+
+// Schutz gegen Passwort-Raten: max. 5 Login-Versuche pro Minute und IP
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
+});
 
 // Erlaubt dem Web-Dashboard (anderer Port) Zugriff auf die API
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -41,6 +86,12 @@ using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<BikestationDbContext>().Database.EnsureCreated();
 }
 
+// Admin anlegen statt Server starten: dotnet run -- create-admin <benutzername>
+if (args.Length > 0 && args[0] == "create-admin")
+{
+    return await CreateAdminCommand.RunAsync(app.Services, args);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -49,8 +100,11 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseRateLimiter();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+return 0;
