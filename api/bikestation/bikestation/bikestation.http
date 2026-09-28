@@ -1,0 +1,6 @@
+@bikestation_HostAddress = http://localhost:5137
+
+GET {{bikestation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

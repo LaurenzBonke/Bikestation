@@ -1,6 +1,0 @@
-@bikestation_HostAddress = http://localhost:5202
-
-GET {{bikestation_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
