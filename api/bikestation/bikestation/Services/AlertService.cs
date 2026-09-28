@@ -22,7 +22,7 @@ namespace bikestation.Services
             return await query
                 .OrderByDescending(a => a.Timestamp)
                 .Take(limit)
-                .Select(a => new AlertDto(a.Id, a.SlotId, a.Type, a.Severity, a.Message, a.Timestamp, a.Resolved))
+                .Select(a => new AlertDto(a.Id, a.SlotId, a.Type, a.Severity, a.Message, a.Timestamp, a.Resolved, a.Score))
                 .ToListAsync();
         }
 

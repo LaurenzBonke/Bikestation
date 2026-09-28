@@ -91,6 +91,7 @@ function AdminArea({ auth, data }: AdminPageProps) {
   const session = auth.session!
   const [message, setMessage] = useState('')
   const [pendingId, setPendingId] = useState<number | null>(null)
+  const [generating, setGenerating] = useState(false)
 
   const slotName = (id: number) => data.slots.find((slot) => slot.id === id)?.name ?? `Stellplatz ${id}`
 
@@ -109,6 +110,28 @@ function AdminArea({ auth, data }: AdminPageProps) {
       setMessage(err instanceof Error ? err.message : 'Aktion fehlgeschlagen.')
     } finally {
       setPendingId(null)
+    }
+  }
+
+  async function generateDemoData() {
+    setGenerating(true)
+    setMessage('')
+    try {
+      const result = await api.generateDemoData(7, session.token)
+      setMessage(`${result.readings.toLocaleString('de-DE')} Demo-Messwerte der letzten 7 Tage erzeugt.`)
+      data.refresh()
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        auth.logout('Deine Sitzung ist abgelaufen. Bitte erneut anmelden.')
+        return
+      }
+      setMessage(
+        err instanceof ApiError && err.status === 404
+          ? 'Demo-Daten gibt es nur, wenn die API im Development-Modus läuft.'
+          : 'Demo-Daten konnten nicht erzeugt werden.',
+      )
+    } finally {
+      setGenerating(false)
     }
   }
 
@@ -175,6 +198,20 @@ function AdminArea({ auth, data }: AdminPageProps) {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="admin-panel admin-section" aria-labelledby="demo-heading">
+        <p className="section-kicker">PRÄSENTATION</p>
+        <h2 id="demo-heading">Demo-Daten</h2>
+        <p className="chart-note">
+          Erzeugt realistische Messwerte der letzten 7 Tage, damit Statistik und KI schon ohne Hardware etwas zeigen.
+          Nur im Development-Modus verfügbar.
+        </p>
+        <div className="admin-actions">
+          <button className="secondary-button" type="button" disabled={generating} onClick={generateDemoData}>
+            {generating ? 'Wird erzeugt …' : 'Demo-Daten erzeugen'}
+          </button>
+        </div>
       </section>
     </>
   )

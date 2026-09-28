@@ -2,6 +2,7 @@ import { useEffect, type MouseEvent } from 'react'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import AdminPage from './components/AdminPage'
+import StatisticsPage from './components/StatisticsPage'
 import { useStationData } from './useStationData'
 import { useAuth } from './useAuth'
 import { useRoute } from './useRoute'
@@ -17,7 +18,8 @@ export default function App() {
   const route = useRoute()
 
   useEffect(() => {
-    document.title = route === 'admin' ? 'Admin – Smart Bikestation' : 'Smart Bikestation'
+    const titles = { overview: 'Smart Bikestation', statistics: 'Statistik – Smart Bikestation', admin: 'Admin – Smart Bikestation' }
+    document.title = titles[route]
   }, [route])
 
   return (
@@ -27,7 +29,9 @@ export default function App() {
         Zum Inhalt springen
       </a>
       <Header connected={data.connected} route={route} />
-      {route === 'admin' ? <AdminPage auth={auth} data={data} /> : <Dashboard data={data} />}
+      {route === 'admin' && <AdminPage auth={auth} data={data} />}
+      {route === 'statistics' && <StatisticsPage />}
+      {route === 'overview' && <Dashboard data={data} />}
     </>
   )
 }

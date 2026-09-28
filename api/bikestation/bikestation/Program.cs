@@ -25,10 +25,22 @@ builder.Services.AddDbContext<BikestationDbContext>(options =>
 
 builder.Services.Configure<OccupancyOptions>(builder.Configuration.GetSection(OccupancyOptions.SectionName));
 
+// API-Key für ESP32 und KI-Dienst
+var deviceSection = builder.Configuration.GetSection(DeviceOptions.SectionName);
+builder.Services.Configure<DeviceOptions>(deviceSection);
+if ((deviceSection.Get<DeviceOptions>()?.ApiKey.Length ?? 0) < 16)
+{
+    throw new InvalidOperationException(
+        "Devices:ApiKey fehlt oder ist kürzer als 16 Zeichen. Per Umgebungsvariable Devices__ApiKey setzen.");
+}
+
 builder.Services.AddScoped<SensorDataService>();
 builder.Services.AddScoped<SlotService>();
 builder.Services.AddScoped<AlertService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AnomalyService>();
+builder.Services.AddScoped<StatisticsService>();
+builder.Services.AddScoped<DemoDataService>();
 
 // JWT-Authentifizierung für Admin-Funktionen
 var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
@@ -98,7 +110,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
-app.UseHttpsRedirection();
+// Keine HTTPS-Umleitung: Die ESP32 senden per HTTP im lokalen Netz und würden einer Umleitung nicht folgen.
+// HTTPS kann später ein Reverse Proxy (z. B. nginx) auf dem Raspberry Pi übernehmen.
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();

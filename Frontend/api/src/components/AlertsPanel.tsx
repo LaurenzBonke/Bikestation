@@ -12,6 +12,12 @@ const severityText: Record<Alert['severity'], string> = {
   Critical: 'Kritisch',
 }
 
+export const alertTypeText: Record<Alert['type'], string> = {
+  PossibleTampering: 'Vibration',
+  SensorMismatch: 'Sensoren widersprüchlich',
+  Anomaly: 'KI-Anomalie',
+}
+
 export default function AlertsPanel({ alerts, slots }: AlertsPanelProps) {
   const slotName = (id: number) => slots.find((slot) => slot.id === id)?.name ?? `Stellplatz ${id}`
 
@@ -34,6 +40,10 @@ export default function AlertsPanel({ alerts, slots }: AlertsPanelProps) {
                     <span aria-hidden="true">⚠</span> {severityText[alert.severity]}
                   </span>
                   <span>{slotName(alert.slotId)}</span>
+                  <span className="alert-type">
+                    {alertTypeText[alert.type]}
+                    {alert.score !== null && ` · Score ${alert.score.toFixed(2)}`}
+                  </span>
                   <time dateTime={alert.timestamp}>{formatDateTime(alert.timestamp)}</time>
                 </span>
                 <span className="alert-message">{alert.message}</span>
@@ -43,7 +53,7 @@ export default function AlertsPanel({ alerts, slots }: AlertsPanelProps) {
         )}
       </div>
       <div className="station-footer">
-        <span className="footer-signal" aria-hidden="true"></span> Vibration an einem Stellplatz erzeugt eine Meldung
+        <span className="footer-signal" aria-hidden="true"></span> Meldungen entstehen durch Vibration oder die KI-Anomalieerkennung
       </div>
     </aside>
   )

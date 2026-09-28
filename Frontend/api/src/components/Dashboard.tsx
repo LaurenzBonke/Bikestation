@@ -3,6 +3,7 @@ import { formatTime } from '../format'
 import OccupancyFrame from './OccupancyFrame'
 import SlotList from './SlotList'
 import AlertsPanel from './AlertsPanel'
+import { displayStatus } from '../slotStatus'
 
 type DashboardProps = {
   data: StationData
@@ -10,8 +11,9 @@ type DashboardProps = {
 
 export default function Dashboard({ data }: DashboardProps) {
   const { slots, alerts, connected, loading, lastFetched } = data
-  const free = slots.filter((slot) => slot.status === 'Free').length
-  const occupied = slots.filter((slot) => slot.status === 'Occupied').length
+  const free = slots.filter((slot) => displayStatus(slot) === 'free').length
+  const occupied = slots.filter((slot) => displayStatus(slot) === 'taken').length
+  const offline = slots.length - free - occupied
 
   return (
     <main id="main" className="page-shell" tabIndex={-1}>
@@ -63,7 +65,7 @@ export default function Dashboard({ data }: DashboardProps) {
               </div>
               <p className="summary-line">
                 {free} frei · {occupied} belegt
-                {slots.length - free - occupied > 0 && ` · ${slots.length - free - occupied} ohne Daten`}
+                {offline > 0 && ` · ${offline} offline / ohne Daten`}
               </p>
 
               <div className="divider"></div>

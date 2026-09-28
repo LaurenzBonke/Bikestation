@@ -1,4 +1,6 @@
 @bikestation_HostAddress = http://localhost:5137
+# Muss Devices:ApiKey entsprechen (appsettings.Development.json)
+@apiKey = dev-geraete-key-nur-lokal
 
 ### Alle Slots
 GET {{bikestation_HostAddress}}/api/slots
@@ -15,6 +17,7 @@ Accept: application/json
 ### ESP32 meldet: Fahrrad steht auf Slot 2
 POST {{bikestation_HostAddress}}/api/sensor-data
 Content-Type: application/json
+X-Api-Key: {{apiKey}}
 
 {
   "slotId": 2,
@@ -26,12 +29,32 @@ Content-Type: application/json
 ### ESP32 meldet: Vibration auf Slot 2
 POST {{bikestation_HostAddress}}/api/sensor-data
 Content-Type: application/json
+X-Api-Key: {{apiKey}}
 
 {
   "slotId": 2,
   "pressure": 842,
   "distance": 27,
   "vibration": true
+}
+
+### Statistik der letzten 7 Tage
+GET {{bikestation_HostAddress}}/api/statistics?days=7
+Accept: application/json
+
+### Messwerte aller Slots (für den KI-Dienst)
+GET {{bikestation_HostAddress}}/api/sensor-readings?afterId=0&limit=20
+Accept: application/json
+
+### KI-Dienst meldet Anomalie
+POST {{bikestation_HostAddress}}/api/anomalies
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "slotId": 2,
+  "score": 0.82,
+  "reason": "Vibration + starke Druckänderung"
 }
 
 ### Offene Alerts
@@ -54,6 +77,10 @@ Authorization: Bearer {{login.response.body.$.token}}
 
 ### Alert als erledigt markieren (nur mit Token)
 POST {{bikestation_HostAddress}}/api/alerts/1/resolve
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Demo-Daten erzeugen (nur Development, mit Token)
+POST {{bikestation_HostAddress}}/api/demo/generate?days=7
 Authorization: Bearer {{login.response.body.$.token}}
 
 ###

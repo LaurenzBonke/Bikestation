@@ -25,5 +25,8 @@ namespace bikestation.Models
         public string Message { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public bool Resolved { get; set; }
+
+        // Nur bei KI-Anomalien: wie ungewöhnlich die Messung war (0 = normal, 1 = sehr ungewöhnlich)
+        public double? Score { get; set; }
     }
 }
