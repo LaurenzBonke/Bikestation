@@ -2,10 +2,14 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "dashboard-test",
+      "name": "dashboard-dev",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd Frontend\\api && set API_URL=http://localhost:5199&& npx vite --port 5174 --strictPort"],
-      "port": 5174
+      "runtimeArgs": ["/c", "cd Frontend\api && npx vite --port 5173"],
+      "port": 5173
+    },
+    {
+      "name": "bikestation-server",
+      "url": "http://localhost:8080"
     }
   ]
 }

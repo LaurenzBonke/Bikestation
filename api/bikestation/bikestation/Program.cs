@@ -132,3 +132,6 @@ app.MapControllers();
 
 app.Run();
 return 0;
+
+// Für die Integrationstests (WebApplicationFactory)
+public partial class Program;

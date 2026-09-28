@@ -51,6 +51,8 @@ if (-not (Test-Path $config)) {
 `$env:ConnectionStrings__Bikestation = "Data Source=$Target\data\bikestation.db"
 `$env:Jwt__Key = "$jwtKey"
 `$env:Devices__ApiKey = "$apiKey"
+# Demo-Daten-Button im Admin-Bereich erlauben (z. B. für die Präsentation):
+# `$env:Demo__Enabled = "true"
 "@ | Set-Content $config -Encoding UTF8
 }
 
