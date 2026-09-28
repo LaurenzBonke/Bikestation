@@ -47,6 +47,20 @@ Für die Präsentation: Im Dashboard unter **Admin** anmelden und **Demo-Daten e
 dann zeigen Statistik und KI sofort Ergebnisse. Eine Manipulation vorführen:
 `python tools/simulator.py --api-key dev-geraete-key-nur-lokal --tamper-slot 2`
 
+## Als Webserver betreiben (Windows-PC)
+
+API und Dashboard laufen zusammen in einem Prozess auf Port 8080 (das gebaute Dashboard liegt in `wwwroot`).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\publish.ps1   # baut alles nach %USERPROFILE%\Bikestation-Server
+%USERPROFILE%\Bikestation-Server\create-admin.cmd admin      # einmalig
+%USERPROFILE%\Bikestation-Server\start-server.cmd
+```
+
+`publish.ps1` erzeugt beim ersten Mal `config.ps1` mit zufälligen Schlüsseln (Produktionsmodus).
+Datenbank (`data\`), Logs und `config.ps1` bleiben bei Updates erhalten. Für Zugriff von anderen
+Geräten muss Port 8080 in der Windows-Firewall freigegeben werden.
+
 ## Sicherheit
 
 - ESP32 und KI-Dienst authentifizieren sich mit API-Key, Admins mit JWT (60 min gültig)

@@ -108,6 +108,21 @@ if (app.Environment.IsDevelopment())
 }
 // Keine HTTPS-Umleitung: Die ESP32 senden per HTTP im lokalen Netz und würden einer Umleitung nicht folgen.
 // HTTPS kann später ein Reverse Proxy (z. B. nginx) auf dem Raspberry Pi übernehmen.
+
+// Grundlegende Sicherheits-Header für alle Antworten
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.XFrameOptions = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    await next();
+});
+
+// Liefert das gebaute React-Dashboard aus wwwroot aus (index.html unter "/"),
+// damit Frontend und API über denselben Server und Port erreichbar sind
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
