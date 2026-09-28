@@ -39,7 +39,16 @@ Danach das Passwort eingeben (mind. 12 Zeichen). Gespeichert wird nur der Hash.
 | GET | `/api/alerts` | – | Offene Meldungen |
 | POST | `/api/alerts/{id}/resolve` | JWT (Admin) | Meldung als erledigt markieren |
 | POST | `/api/anomalies` | API-Key | KI-Dienst meldet Anomalie |
+| POST | `/api/auth/register` | – | Nutzerkonto anlegen (nur Benutzername + Passwort), liefert JWT |
 | POST | `/api/auth/login` | – | Login, liefert JWT (max. 5 Versuche/Minute) |
+| GET | `/api/boxes` | – (mit JWT zusätzlich `isMine`) | Alle Boxen mit Zustand |
+| POST | `/api/boxes/{id}/book` | JWT | Freie Box buchen, Riegel öffnet |
+| POST | `/api/boxes/{id}/cancel` | JWT (Besitzer) | Buchung abbrechen, solange kein Fahrrad drin ist |
+| POST | `/api/boxes/{id}/pickup` | JWT (Besitzer) | Verriegelte Box zum Abholen öffnen |
+| POST | `/api/boxes/{id}/release` | JWT (Admin) | Nach Alarm gesperrte Box freigeben |
+| GET | `/api/me` | JWT | Eigene Box, eigene Meldungen, Verlauf |
+| POST | `/api/me/alerts/{id}/ack` | JWT | Eigene Meldung als gesehen markieren |
+| GET | `/api/device/boxes` | API-Key | Soll-Zustand aller Riegel (für Pi/ESP32) |
 | GET | `/api/auth/me` | JWT | Token prüfen |
 | POST | `/api/demo/generate?days=7` | JWT (Admin) | Demo-Daten erzeugen (Development oder `Demo:Enabled`) |
 
@@ -60,6 +69,10 @@ Danach das Passwort eingeben (mind. 12 Zeichen). Gespeichert wird nur der Hash.
 | `Anomaly:ZThreshold` | 6 | Ab dieser Abweichung (robuster Z-Score) wird gemeldet |
 | `Retention:ReadingDays` | 90 | Messwerte älter als das werden täglich gelöscht (0 = nie) |
 | `Demo:Enabled` | false | Demo-Daten-Button auch außerhalb von Development erlauben |
+| `Box:BikePresentMaxDistanceCm` | 5 | Fahrrad gilt als da, wenn der Ultraschall höchstens so nah misst |
+| `Box:ParkConfirmSeconds` / `LeaveConfirmSeconds` | 5 | So lange muss das Rad da bzw. weg sein, bevor der Riegel schaltet |
+| `Box:AlarmConfirmSeconds` | 3 | So lange fehlt das Rad in einer verriegelten Box, bevor Alarm ausgelöst wird |
+| `Box:OpenForParkingTimeoutSeconds` / `OpenForPickupTimeoutSeconds` | 120 | Zeitlimit für offene Boxen |
 | `Cors:AllowedOrigins` | localhost:5173 | Erlaubte Frontend-Adressen |
 
 `appsettings.Development.json` enthält nur Entwicklungs-Schlüssel. **Auf dem Raspberry Pi** eigene,
