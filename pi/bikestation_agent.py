@@ -67,7 +67,7 @@ class Agent:
 
     def run_once(self) -> None:
         for box in self.boxes:
-            distance = hardware.median_distance(box.distance_sensor)
+            distance = box.distance_sensor.read_cm()
             vibration = box.vibration.consume() if box.vibration else False
             try:
                 result = self.api.send_reading(box.slot_id, distance, vibration)
