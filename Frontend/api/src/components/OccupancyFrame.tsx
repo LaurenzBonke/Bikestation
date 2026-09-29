@@ -16,7 +16,7 @@ export default function OccupancyFrame({ slots }: { slots: Slot[] }) {
   return (
     <div className="occupancy-frame" aria-hidden="true">
       <span className="frame-label">{t('frame.label')}</span>
-      <div className="status-lights">
+      <div className="status-lights" style={{ gridTemplateColumns: `repeat(${Math.max(slots.length, 1)}, 1fr)` }}>
         {slots.map((slot) => (
           <span key={slot.id} className={`status-light ${lightClass[displayStatus(slot)]}`}>
             {slot.id}

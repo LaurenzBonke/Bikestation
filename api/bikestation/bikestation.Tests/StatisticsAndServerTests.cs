@@ -52,6 +52,27 @@ namespace bikestation.Tests
         }
 
         [Fact]
+        public async Task Stationsanzahl_kommt_aus_der_Konfiguration()
+        {
+            // Erst 3 Boxen mit Messwert an Box 3, dann Neustart mit nur einer Box
+            var file = Path.Combine(Path.GetTempPath(), $"bikestation-stationen-{Guid.NewGuid():N}.db");
+            var db = $"Data Source={file}";
+            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db }))
+            {
+                await app.DeviceClient().PostAsJsonAsync("/api/sensor-data", new { slotId = 3, pressure = 0, distance = 80, vibration = false });
+                Assert.Equal(3, (await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/slots")).GetArrayLength());
+            }
+            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db, ["Box:StationCount"] = "1" }))
+            {
+                var slots = await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/slots");
+                Assert.Equal(1, slots.GetArrayLength());
+                Assert.Equal(1, slots[0].GetProperty("id").GetInt32());
+                var response = await app.DeviceClient().PostAsJsonAsync("/api/sensor-data", new { slotId = 3, pressure = 0, distance = 80, vibration = false });
+                Assert.False(response.IsSuccessStatusCode);
+            }
+        }
+
+        [Fact]
         public async Task Antworten_haben_Sicherheits_Header()
         {
             using var app = new BikestationApp();

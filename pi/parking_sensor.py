@@ -32,9 +32,9 @@ SERVO_PIN = 15
 LED_GRUEN_PIN = 17   # grün = frei; aus, sobald ein Fahrrad geparkt und die Tür zu ist
 SCHWELLE_CM = 7.0
 
-# Winkel aus "test servo.py" (am Modell ausprobiert)
-WINKEL_OFFEN = 100
-WINKEL_GESCHLOSSEN = 50
+# Schranke: offen = 90°, geschlossen = 45° (am Modell ausprobiert)
+WINKEL_OFFEN = 90
+WINKEL_GESCHLOSSEN = 45
 BEWEGUNGSDAUER_S = 0.6   # Zeit, bis der Servo sicher angekommen ist
 SCHRITTE = 10            # sanft in kleinen Schritten fahren statt ruckartig
 LOKAL_BESTAETIGUNG = 3   # ohne Server: so viele gleiche Messungen hintereinander, bevor die Schranke fährt

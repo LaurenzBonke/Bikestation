@@ -5,6 +5,10 @@ namespace bikestation.Options
     {
         public const string SectionName = "Box";
 
+        // Anzahl der Stationen (Boxen 1..N). Erst einmal nur die eine echte Box am Raspberry Pi –
+        // für weitere Boxen einfach erhöhen, sie werden beim nächsten Start angelegt.
+        public int StationCount { get; set; } = 1;
+
         // Fahrrad gilt als "da", wenn der Ultraschallsensor höchstens so weit misst (cm)
         public int BikePresentMaxDistanceCm { get; set; } = 7;
 

@@ -7,7 +7,7 @@ ab und zu wird eine Manipulation (Rütteln) simuliert.
 
 Beispiele:
     python simulator.py --api-key dev-geraete-key-nur-lokal
-    python simulator.py --api-key ... --tamper-slot 2        # sofort Manipulation an Platz 2
+    python simulator.py --api-key ... --tamper-slot 1        # sofort Manipulation an Platz 1
 Nur Python-Standardbibliothek, keine Installation nötig.
 """
 
@@ -81,7 +81,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="ESP32-Simulator Smart Bikestation")
     parser.add_argument("--api", default="http://localhost:5137", help="Adresse der C#-API")
     parser.add_argument("--api-key", required=True, help="Wert von Devices:ApiKey")
-    parser.add_argument("--slots", type=int, default=3, help="Anzahl Stellplätze")
+    parser.add_argument("--slots", type=int, default=1, help="Anzahl Stellplätze")
     parser.add_argument("--interval", type=float, default=2.0, help="Sekunden zwischen Messungen")
     parser.add_argument("--change-chance", type=float, default=0.03, help="Chance pro Messung, dass ein Rad kommt/geht")
     parser.add_argument("--tamper-chance", type=float, default=0.005, help="Chance pro Messung für Manipulation")

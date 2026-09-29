@@ -1,6 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.Options;
+using bikestation.Models;
+using bikestation.Options;
 
 namespace bikestation.Data
 {
@@ -30,15 +33,36 @@ namespace bikestation.Data
 
             db.Database.EnsureCreated();
             logger.LogInformation("Datenbank: {File}", file);
-            if (SchemaIsCurrent(db))
+            if (!SchemaIsCurrent(db))
             {
-                return;
+                db.Database.CloseConnection();
+                var backup = Migrate(db, file);
+                logger.LogWarning(
+                    "Datenbank wurde auf das neue Datenmodell umgestellt, vorhandene Daten übernommen. Sicherung: {Backup}", backup);
             }
 
-            db.Database.CloseConnection();
-            var backup = Migrate(db, file);
-            logger.LogWarning(
-                "Datenbank wurde auf das neue Datenmodell umgestellt, vorhandene Daten übernommen. Sicherung: {Backup}", backup);
+            var stationCount = Math.Max(1, scope.ServiceProvider.GetRequiredService<IOptions<BoxOptions>>().Value.StationCount);
+            SyncStations(db, stationCount, logger);
+        }
+
+        // Legt die Boxen 1..N an und entfernt Boxen darüber (samt Messwerten, Meldungen und Parkvorgängen)
+        public static void SyncStations(BikestationDbContext db, int count, ILogger logger)
+        {
+            var existing = db.Slots.Select(s => s.Id).ToHashSet();
+            for (var id = 1; id <= count; id++)
+            {
+                if (!existing.Contains(id)) db.Slots.Add(new Slot { Id = id, Name = $"Stellplatz {id}" });
+            }
+            db.SaveChanges();
+
+            if (existing.Any(id => id > count))
+            {
+                db.Alerts.Where(a => a.SlotId > count).ExecuteDelete();
+                db.SensorReadings.Where(r => r.SlotId > count).ExecuteDelete();
+                db.Parkings.Where(p => p.SlotId > count).ExecuteDelete();
+                var removed = db.Slots.Where(s => s.Id > count).ExecuteDelete();
+                logger.LogWarning("{Removed} Box(en) über Nummer {Count} entfernt (Box:StationCount = {Count})", removed, count, count);
+            }
         }
 
         // Gibt den Pfad der Sicherungskopie zurück
@@ -134,7 +158,7 @@ namespace bikestation.Data
                 selectExpressions.Add(expression);
             }
 
-            // INSERT OR REPLACE, weil das neue Schema z. B. die 3 Boxen schon als Startdaten enthält
+            // INSERT OR REPLACE, falls das neue Schema schon Startdaten enthält
             using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText =

@@ -49,12 +49,6 @@ namespace bikestation.Data
                 .HasOne(p => p.User)
                 .WithMany(u => u.Parkings)
                 .HasForeignKey(p => p.UserId);
-
-            // Die 3 Boxen des Prototyps
-            modelBuilder.Entity<Slot>().HasData(
-                new Slot { Id = 1, Name = "Stellplatz 1" },
-                new Slot { Id = 2, Name = "Stellplatz 2" },
-                new Slot { Id = 3, Name = "Stellplatz 3" });
         }
     }
 }
