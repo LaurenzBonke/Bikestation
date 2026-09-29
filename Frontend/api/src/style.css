@@ -802,3 +802,18 @@ a.primary-button, a.secondary-button { text-decoration: none; }
 @media (max-width: 640px) {
   .event-log li { grid-template-columns: 1fr; }
 }
+
+/* Admin: Protokoll einklappbar */
+.log-details { margin-top: 10px; }
+
+.log-details > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--ink); font-weight: 700; cursor: pointer; list-style: none; }
+
+.log-details > summary::-webkit-details-marker { display: none; }
+
+.log-details > summary::before { content: '▸'; transition: transform .15s; }
+
+.log-details[open] > summary::before { transform: rotate(90deg); }
+
+.notify-panel { margin-top: 16px; }
+
+.notify-panel h2 { margin: 0 0 6px; font-size: 18px; }

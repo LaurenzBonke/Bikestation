@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Sanfter Alarmton (zwei weiche Töne, alle paar Sekunden) – bewusst nicht schrill.
+// Alarmton (drei klare Töne, alle paar Sekunden) – deutlich hörbar, aber kein schrilles Piepen.
 // Läuft, solange `active` wahr ist; bestätigt der Nutzer die Meldung, verstummt er.
-const REPEAT_MS = 5000
-const VOLUME = 0.12
+// Zusätzlich: Vibration (Android), blinkender Tab-Titel und – wenn erlaubt – eine System-Benachrichtigung.
+const REPEAT_MS = 4000
+const VOLUME = 0.45
+const NOTIFY_TAG = 'bikestation-alarm'
 
 type AudioContextClass = typeof AudioContext
 
 function playChime(context: AudioContext) {
   const start = context.currentTime + 0.02
-  // Zwei aufsteigende Töne mit weichem Ein- und Ausklang
+  // Drei aufsteigende Töne mit weichem Ein- und Ausklang
   ;[
     { freq: 660, at: 0 },
-    { freq: 880, at: 0.32 },
+    { freq: 880, at: 0.3 },
+    { freq: 1100, at: 0.6 },
   ].forEach(({ freq, at }) => {
     const osc = context.createOscillator()
     const gain = context.createGain()
-    osc.type = 'sine'
+    osc.type = 'triangle'
     osc.frequency.value = freq
     const t0 = start + at
     gain.gain.setValueAtTime(0, t0)
@@ -28,8 +31,28 @@ function playChime(context: AudioContext) {
   })
 }
 
+// System-Benachrichtigung – nur möglich über HTTPS (oder localhost) und wenn der Nutzer sie erlaubt hat
+export function notificationsSupported(): boolean {
+  return typeof window !== 'undefined' && window.isSecureContext && 'Notification' in window
+}
+
+async function showNotification(title: string, body: string) {
+  if (!notificationsSupported() || Notification.permission !== 'granted') return
+  const options: NotificationOptions = { body, tag: NOTIFY_TAG, requireInteraction: true }
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration()
+    if (registration) await registration.showNotification(title, options)
+    else new Notification(title, options)
+  } catch {
+    // Manche Handy-Browser erlauben "new Notification" nicht – dann eben nur Ton und Banner
+  }
+}
+
 // needsGesture: Browser blockiert Ton, bis man einmal auf die Seite geklickt hat
-export function useAlarmSound(active: boolean): { needsGesture: boolean; enable: () => void } {
+export function useAlarmSound(
+  active: boolean,
+  message?: { title: string; body: string },
+): { needsGesture: boolean; enable: () => void } {
   const contextRef = useRef<AudioContext | null>(null)
   const [needsGesture, setNeedsGesture] = useState(false)
 
@@ -62,7 +85,17 @@ export function useAlarmSound(active: boolean): { needsGesture: boolean; enable:
     const ring = () => {
       if (ctx.state === 'running') playChime(ctx)
       else setNeedsGesture(true)
+      navigator.vibrate?.([400, 150, 400])
     }
+
+    // Tab-Titel blinkt, damit man den Alarm auch in einem anderen Tab bemerkt
+    const originalTitle = document.title
+    let flash = false
+    const titleTimer = window.setInterval(() => {
+      flash = !flash
+      document.title = flash && message ? `⚠ ${message.title}` : originalTitle
+    }, 1000)
+    if (message) void showNotification(message.title, message.body)
     void ctx.resume().finally(ring)
     const timer = window.setInterval(ring, REPEAT_MS)
 
@@ -74,9 +107,13 @@ export function useAlarmSound(active: boolean): { needsGesture: boolean; enable:
     window.addEventListener('keydown', unlock)
     return () => {
       window.clearInterval(timer)
+      window.clearInterval(titleTimer)
+      document.title = originalTitle
+      navigator.vibrate?.(0)
       window.removeEventListener('pointerdown', unlock)
       window.removeEventListener('keydown', unlock)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Meldungstext ändert den Alarm nicht
   }, [active])
 
   useEffect(() => () => void contextRef.current?.close(), [])

@@ -207,6 +207,8 @@ function BoxLog({ auth }: { auth: Auth }) {
       <p className="section-kicker">{t('admin.logKicker')}</p>
       <h2 id="log-heading">{t('admin.logHeading')}</h2>
       <p className="chart-note">{t('admin.logText')}</p>
+      <details className="log-details">
+        <summary>{t('admin.logToggle', { count: events?.length ?? 0 })}</summary>
       <label className="form-field log-filter">
         <span>{t('admin.logFilter')}</span>
         <input type="search" value={filter} onChange={(event) => setFilter(event.target.value)} autoComplete="off" />
@@ -234,6 +236,7 @@ function BoxLog({ auth }: { auth: Auth }) {
           ))}
         </ol>
       )}
+      </details>
     </section>
   )
 }
@@ -380,8 +383,6 @@ function AdminArea({ auth, data }: AdminPageProps) {
 
       <Occupancy auth={auth} />
 
-      <BoxLog auth={auth} />
-
       <section className="admin-panel admin-section" aria-labelledby="admin-alerts-heading">
         <p className="section-kicker">{t('alerts.kicker')}</p>
         <h2 id="admin-alerts-heading">{t('admin.alertsHeading', { count: data.alerts.length })}</h2>
@@ -438,6 +439,8 @@ function AdminArea({ auth, data }: AdminPageProps) {
           </button>
         </div>
       </section>
+
+      <BoxLog auth={auth} />
     </>
   )
 }

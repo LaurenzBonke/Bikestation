@@ -13,8 +13,12 @@ export default function AlarmBanner({ auth, status }: { auth: Auth; status: MySt
   const [pending, setPending] = useState<number | null>(null)
   const alerts = status.me?.alerts ?? []
   // Ton nur beim echten Alarm (Fahrrad ohne Öffnen entfernt); Wegklicken der Meldung beendet ihn
-  const ringing = !!auth.session && alerts.some((a) => a.type === 'BikeRemoved')
-  const sound = useAlarmSound(ringing)
+  const removed = alerts.find((a) => a.type === 'BikeRemoved')
+  const ringing = !!auth.session && !!removed
+  const sound = useAlarmSound(
+    ringing,
+    removed && { title: t('alarm.notifyTitle'), body: t('alarm.bikeRemoved', { slot: slotName(t, removed.slotId) }) },
+  )
   if (!auth.session || alerts.length === 0) return null
 
   async function acknowledge(alert: Alert) {
