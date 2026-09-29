@@ -23,6 +23,9 @@ namespace bikestation.Models
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+
+        // Wo die Box steht (genau ein Ort pro Box), z. B. "Hackathon Halle"
+        public string Location { get; set; } = string.Empty;
         public SlotStatus Status { get; set; } = SlotStatus.Unknown;
 
         // Zeitpunkt der letzten Sensormeldung (UTC)

@@ -32,6 +32,7 @@ namespace bikestation.Controllers
             return slots.Select(s => new BoxDto(
                 s.Id,
                 s.Name,
+                s.Location,
                 s.BoxState,
                 s.LockOpen,
                 s.Status == SlotStatus.Occupied,

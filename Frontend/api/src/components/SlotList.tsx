@@ -2,6 +2,8 @@ import type { Slot } from '../api'
 import { formatTime, pad2 } from '../format'
 import { displayStatus, slotName, statusKey } from '../slotStatus'
 import { useI18n } from '../i18n'
+import { bookLink } from '../useRoute'
+import { PinIcon } from './Dashboard'
 
 export default function SlotList({ slots, isAdmin }: { slots: Slot[]; isAdmin: boolean }) {
   const { t, locale } = useI18n()
@@ -34,6 +36,11 @@ export default function SlotList({ slots, isAdmin }: { slots: Slot[]; isAdmin: b
             </span>
             <span className="spot-main">
               <span className="spot-name">{slotName(t, slot.id)}</span>
+              {slot.location && (
+                <span className="spot-location">
+                  <PinIcon /> {slot.location}
+                </span>
+              )}
               <SensorValues slot={slot} />
               <span className="sensor-values">{t('slot.boxState', { state: t(`state.${slot.boxState}`) })}</span>
             </span>
@@ -64,7 +71,7 @@ export default function SlotList({ slots, isAdmin }: { slots: Slot[]; isAdmin: b
             <li key={slot.id} className={warning ? 'has-warning' : undefined}>
               {/* Freie Plätze sind anklickbar und führen direkt zum Buchen */}
               {status === 'free' ? (
-                <a className="spot-row is-bookable" href="#boxen" aria-label={t('slot.bookAria', { slot: slotName(t, slot.id) })}>
+                <a className="spot-row is-bookable" href={bookLink(slot.id)} aria-label={t('slot.bookAria', { slot: slotName(t, slot.id) })}>
                   {content}
                 </a>
               ) : (

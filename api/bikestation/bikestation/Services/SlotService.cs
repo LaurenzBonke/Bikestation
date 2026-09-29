@@ -50,6 +50,7 @@ namespace bikestation.Services
             return slots.Select(s => new SlotDto(
                 s.Id,
                 s.Name,
+                s.Location,
                 s.Status,
                 s.Status == SlotStatus.Occupied ? "Belegt" : s.Status == SlotStatus.Free ? "Frei" : "Unbekannt",
                 s.LastUpdated,

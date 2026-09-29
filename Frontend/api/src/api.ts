@@ -13,6 +13,7 @@ export type SensorReading = {
 export type Slot = {
   id: number
   name: string
+  location: string
   status: SlotStatus
   statusText: string
   lastUpdated: string | null
@@ -99,6 +100,7 @@ export type BoxState = 'Free' | 'OpenForParking' | 'Locked' | 'OpenForPickup' | 
 export type Box = {
   id: number
   name: string
+  location: string
   state: BoxState
   lockOpen: boolean
   bikeDetected: boolean

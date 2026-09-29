@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type React from 'react'
+import { selectedBoxId } from '../useRoute'
+import { PinIcon } from './Dashboard'
 import { ApiError, api, type Box, type BoxState, type MyParking, type ParkingHistory } from '../api'
 import type { Auth } from '../useAuth'
 import type { MyStatus } from '../useMyStatus'
@@ -40,6 +43,16 @@ export default function BoxesPage({ auth, status }: Props) {
   const [busy, setBusy] = useState<number | null>(null)
   const [error, setError] = useState<TranslationKey | null>(null)
   const parking = status.me?.parking ?? null
+  const selectedId = selectedBoxId()
+  const selectedRef = useRef<HTMLLIElement>(null)
+
+  // Aus der Übersicht kommend: zur gewählten Box scrollen
+  useEffect(() => {
+    if (loaded && selectedRef.current) {
+      selectedRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      selectedRef.current.querySelector<HTMLElement>('button, h3')?.focus({ preventScroll: true })
+    }
+  }, [loaded, selectedId])
 
   async function run(boxId: number, action: (id: number, token: string) => Promise<void>) {
     if (!token) return
@@ -102,6 +115,8 @@ export default function BoxesPage({ auth, status }: Props) {
             <BoxCard
               key={box.id}
               box={box}
+              selected={box.id === selectedId}
+              cardRef={box.id === selectedId ? selectedRef : undefined}
               canBook={!!auth.session && !parking && box.state === 'Free' && box.isOnline}
               busy={busy === box.id}
               onBook={() => run(box.id, api.bookBox)}
@@ -139,17 +154,36 @@ function History({ history }: { history: ParkingHistory[] }) {
   )
 }
 
-function BoxCard({ box, canBook, busy, onBook }: { box: Box; canBook: boolean; busy: boolean; onBook: () => void }) {
+function BoxCard({
+  box,
+  selected,
+  cardRef,
+  canBook,
+  busy,
+  onBook,
+}: {
+  box: Box
+  selected: boolean
+  cardRef?: React.Ref<HTMLLIElement>
+  canBook: boolean
+  busy: boolean
+  onBook: () => void
+}) {
   const { t } = useI18n()
   const name = slotName(t, box.id)
   return (
-    <li className={`box-card ${box.isMine ? 'is-mine' : ''}`}>
+    <li ref={cardRef} className={`box-card ${box.isMine ? 'is-mine' : ''} ${selected ? 'is-selected' : ''}`}>
       <div className="box-card-head">
         <span className="box-number" aria-hidden="true">
           {box.id}
         </span>
         <div>
-          <h3>{name}</h3>
+          <h3 tabIndex={-1}>{name}</h3>
+          {box.location && (
+            <span className="spot-location">
+              <PinIcon /> {box.location}
+            </span>
+          )}
           {box.isMine && <span className="mine-badge">{t('boxes.mine')}</span>}
         </div>
       </div>

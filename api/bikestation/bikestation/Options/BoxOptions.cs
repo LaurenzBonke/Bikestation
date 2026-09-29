@@ -9,6 +9,9 @@ namespace bikestation.Options
         // für weitere Boxen einfach erhöhen, sie werden beim nächsten Start angelegt.
         public int StationCount { get; set; } = 1;
 
+        // Ort je Box: erster Eintrag = Box 1, zweiter = Box 2 usw. Wird beim Start übernommen.
+        public string[] Locations { get; set; } = [];
+
         // Fahrrad gilt als "da", wenn der Ultraschallsensor höchstens so weit misst (cm)
         public int BikePresentMaxDistanceCm { get; set; } = 7;
 

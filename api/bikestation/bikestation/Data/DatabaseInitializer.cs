@@ -41,8 +41,8 @@ namespace bikestation.Data
                     "Datenbank wurde auf das neue Datenmodell umgestellt, vorhandene Daten übernommen. Sicherung: {Backup}", backup);
             }
 
-            var stationCount = Math.Max(1, scope.ServiceProvider.GetRequiredService<IOptions<BoxOptions>>().Value.StationCount);
-            SyncStations(db, stationCount, logger);
+            var boxOptions = scope.ServiceProvider.GetRequiredService<IOptions<BoxOptions>>().Value;
+            SyncStations(db, Math.Max(1, boxOptions.StationCount), logger, boxOptions.Locations);
             BackfillBoxEvents(db, logger);
         }
 
@@ -73,7 +73,7 @@ namespace bikestation.Data
         }
 
         // Legt die Boxen 1..N an und entfernt Boxen darüber (samt Messwerten, Meldungen und Parkvorgängen)
-        public static void SyncStations(BikestationDbContext db, int count, ILogger logger)
+        public static void SyncStations(BikestationDbContext db, int count, ILogger logger, string[]? locations = null)
         {
             var existing = db.Slots.Select(s => s.Id).ToHashSet();
             for (var id = 1; id <= count; id++)
@@ -81,6 +81,17 @@ namespace bikestation.Data
                 if (!existing.Contains(id)) db.Slots.Add(new Slot { Id = id, Name = $"Stellplatz {id}" });
             }
             db.SaveChanges();
+
+            // Orte aus der Konfiguration übernehmen (leere Einträge ändern nichts)
+            if (locations is { Length: > 0 })
+            {
+                foreach (var slot in db.Slots.Where(s => s.Id <= count).ToList())
+                {
+                    var location = slot.Id <= locations.Length ? locations[slot.Id - 1]?.Trim() : null;
+                    if (!string.IsNullOrEmpty(location) && slot.Location != location) slot.Location = location;
+                }
+                db.SaveChanges();
+            }
 
             if (existing.Any(id => id > count))
             {

@@ -62,11 +62,14 @@ namespace bikestation.Tests
                 await app.DeviceClient().PostAsJsonAsync("/api/sensor-data", new { slotId = 3, pressure = 0, distance = 80, vibration = false });
                 Assert.Equal(3, (await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/slots")).GetArrayLength());
             }
-            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db, ["Box:StationCount"] = "1" }))
+            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db, ["Box:StationCount"] = "1", ["Box:Locations:0"] = "Hackathon Halle" }))
             {
                 var slots = await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/slots");
                 Assert.Equal(1, slots.GetArrayLength());
                 Assert.Equal(1, slots[0].GetProperty("id").GetInt32());
+                Assert.Equal("Hackathon Halle", slots[0].GetProperty("location").GetString());
+                var boxes = await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/boxes");
+                Assert.Equal("Hackathon Halle", boxes[0].GetProperty("location").GetString());
                 var response = await app.DeviceClient().PostAsJsonAsync("/api/sensor-data", new { slotId = 3, pressure = 0, distance = 80, vibration = false });
                 Assert.False(response.IsSuccessStatusCode);
             }

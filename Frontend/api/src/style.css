@@ -737,3 +737,18 @@ a.primary-button, a.secondary-button { text-decoration: none; }
 /* Breite Tabellen (Box-Protokoll) auf dem Handy seitlich scrollbar statt die Seite zu sprengen */
 .table-scroll { overflow-x: auto; }
 .table-scroll .data-table td, .table-scroll .data-table th { white-space: nowrap; }
+
+/* Übersicht: freie Stellplätze als anklickbare Karten mit Ort */
+.free-spots { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+
+.free-callout-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.free-callout-location, .spot-location { display: inline-flex; align-items: center; gap: 5px; color: var(--text); font-size: 15px; font-weight: 600; }
+
+.spot-location { font-size: 13px; font-weight: 500; }
+
+.pin-icon { width: 1.05em; height: 1.05em; flex: 0 0 auto; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.box-card.is-selected { border: 2px solid var(--ink); box-shadow: 0 0 0 4px var(--surface-2); }
+
+.box-card h3:focus { outline: none; }

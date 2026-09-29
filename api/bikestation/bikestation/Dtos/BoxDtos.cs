@@ -6,6 +6,7 @@ namespace bikestation.Dtos
     public record BoxDto(
         int Id,
         string Name,
+        string Location,
         BoxState State,
         bool LockOpen,
         bool BikeDetected,
