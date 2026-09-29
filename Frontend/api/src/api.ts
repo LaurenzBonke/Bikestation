@@ -195,7 +195,7 @@ async function readProblem(response: Response): Promise<{ title?: string; type?:
 
 export const api = {
   getSlots: (signal?: AbortSignal) => request<Slot[]>('/slots', { signal }),
-  getAlerts: (signal?: AbortSignal) => request<Alert[]>('/alerts', { signal }),
+  getAlerts: (token: string, signal?: AbortSignal) => request<Alert[]>('/alerts', { signal }, token),
   getStatistics: (days: number, signal?: AbortSignal) => request<Statistics>(`/statistics?days=${days}`, { signal }),
   getForecast: (hours: number, signal?: AbortSignal) => request<Forecast>(`/forecast?hours=${hours}`, { signal }),
 

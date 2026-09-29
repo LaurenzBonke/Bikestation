@@ -3,7 +3,7 @@ import { formatTime, pad2 } from '../format'
 import { displayStatus, slotName, statusKey } from '../slotStatus'
 import { useI18n } from '../i18n'
 
-export default function SlotList({ slots }: { slots: Slot[] }) {
+export default function SlotList({ slots, isAdmin }: { slots: Slot[]; isAdmin: boolean }) {
   const { t, locale } = useI18n()
 
   return (
@@ -17,8 +17,11 @@ export default function SlotList({ slots }: { slots: Slot[] }) {
       </div>
 
       <ul className="spot-list">
-        {slots.map((slot) => (
-          <li key={slot.id} className={`spot-row ${slot.possibleTampering || slot.hasAnomaly ? 'has-warning' : ''}`}>
+        {slots.map((slot) => {
+          const status = displayStatus(slot)
+          const warning = isAdmin && (slot.possibleTampering || slot.hasAnomaly)
+          const content = (
+            <>
             <span className="spot-number" aria-hidden="true">
               {pad2(slot.id)}
             </span>
@@ -34,25 +37,42 @@ export default function SlotList({ slots }: { slots: Slot[] }) {
               <SensorValues slot={slot} />
               <span className="sensor-values">{t('slot.boxState', { state: t(`state.${slot.boxState}`) })}</span>
             </span>
-            <span className={`spot-status ${displayStatus(slot)}`}>
-              <span aria-hidden="true"></span>
-              {t(statusKey[displayStatus(slot)])}
+            <span className={`spot-status ${status}`}>
+              {t(statusKey[status])}
+              {status === 'free' && (
+                <span className="spot-book">
+                  {t('dash.bookNow')} <span aria-hidden="true">→</span>
+                </span>
+              )}
             </span>
-            {slot.possibleTampering && (
+            {isAdmin && slot.possibleTampering && (
               <p className="tamper-warning" role="alert">
                 <span aria-hidden="true">⚠</span> {t('slot.tamper')}
               </p>
             )}
-            {slot.hasAnomaly && (
+            {isAdmin && slot.hasAnomaly && (
               <p className="tamper-warning" role="alert">
                 <span aria-hidden="true">⚠</span> {t('slot.anomaly')}
               </p>
             )}
-            {displayStatus(slot) === 'offline' && (
+            {status === 'offline' && (
               <p className="offline-note">{t('slot.offlineNote', { time: formatTime(slot.lastUpdated, locale) })}</p>
             )}
-          </li>
-        ))}
+            </>
+          )
+          return (
+            <li key={slot.id} className={warning ? 'has-warning' : undefined}>
+              {/* Freie Plätze sind anklickbar und führen direkt zum Buchen */}
+              {status === 'free' ? (
+                <a className="spot-row is-bookable" href="#boxen" aria-label={t('slot.bookAria', { slot: slotName(t, slot.id) })}>
+                  {content}
+                </a>
+              ) : (
+                <div className="spot-row">{content}</div>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </>
   )

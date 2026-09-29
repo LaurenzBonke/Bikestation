@@ -1,22 +1,23 @@
 import type { StationData } from '../useStationData'
 import { formatTime } from '../format'
-import OccupancyFrame from './OccupancyFrame'
 import SlotList from './SlotList'
 import AlertsPanel from './AlertsPanel'
 import ForecastPanel from './ForecastPanel'
-import { displayStatus } from '../slotStatus'
+import { displayStatus, slotName } from '../slotStatus'
 import { useI18n } from '../i18n'
 
 type DashboardProps = {
   data: StationData
+  isAdmin: boolean
 }
 
-export default function Dashboard({ data }: DashboardProps) {
+export default function Dashboard({ data, isAdmin }: DashboardProps) {
   const { t, locale } = useI18n()
   const { slots, alerts, connected, loading, lastFetched } = data
   const free = slots.filter((slot) => displayStatus(slot) === 'free').length
   const occupied = slots.filter((slot) => displayStatus(slot) === 'taken').length
   const offline = slots.length - free - occupied
+  const freeSlots = slots.filter((slot) => displayStatus(slot) === 'free')
 
   return (
     <main id="main" className="page-shell" tabIndex={-1}>
@@ -55,16 +56,21 @@ export default function Dashboard({ data }: DashboardProps) {
             <p className="loading-text">{t('dash.loading')}</p>
           ) : (
             <>
-              <div className="availability-summary">
-                <div className="count-block" aria-live="polite">
-                  <span className="available-count">{free}</span>
-                  <span className="count-total">
-                    {t('dash.of', { total: slots.length })}
-                    <br />
-                    {t('dash.spotsFree')}
-                  </span>
-                </div>
-                <OccupancyFrame slots={slots} />
+              <div className="availability-answer" aria-live="polite">
+                {free > 0 ? (
+                  <a className="free-callout" href="#boxen">
+                    <span className="free-callout-text">
+                      {free === 1 && slots.length === 1
+                        ? t('dash.oneFree', { slot: slotName(t, freeSlots[0].id) })
+                        : t('dash.someFree', { free, total: slots.length })}
+                    </span>
+                    <span className="free-callout-action">
+                      {t('dash.bookNow')} <span aria-hidden="true">→</span>
+                    </span>
+                  </a>
+                ) : (
+                  <p className="none-free">{offline === slots.length ? t('dash.stationOffline') : t('dash.noneFree')}</p>
+                )}
               </div>
               <p className="summary-line">
                 {t('dash.summary', { free, taken: occupied })}
@@ -72,13 +78,13 @@ export default function Dashboard({ data }: DashboardProps) {
               </p>
 
               <div className="divider"></div>
-              <SlotList slots={slots} />
+              <SlotList slots={slots} isAdmin={isAdmin} />
             </>
           )}
         </div>
 
         <div className="side-column">
-          <AlertsPanel alerts={alerts} />
+          {isAdmin && <AlertsPanel alerts={alerts} />}
           <ForecastPanel />
         </div>
       </section>

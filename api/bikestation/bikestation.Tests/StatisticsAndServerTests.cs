@@ -117,7 +117,7 @@ namespace bikestation.Tests
             Assert.Equal("Admin", (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("role").GetString());
             // Messwerte und Meldungen übernommen, Boxen starten als frei
             Assert.Equal(2, app.WithDb(db => db.SensorReadings.Count()));
-            Assert.Single((await client.GetFromJsonAsync<JsonElement[]>("/api/alerts"))!);
+            Assert.Single((await app.DeviceClient().GetFromJsonAsync<JsonElement[]>("/api/alerts"))!);
             var boxes = await client.GetFromJsonAsync<JsonElement[]>("/api/boxes");
             Assert.All(boxes!, b => Assert.Equal("Free", b.GetProperty("state").GetString()));
             // Sicherung der alten Datei liegt daneben

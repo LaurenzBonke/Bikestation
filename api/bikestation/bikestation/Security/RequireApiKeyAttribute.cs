@@ -14,8 +14,13 @@ namespace bikestation.Security
     {
         public const string HeaderName = "X-Api-Key";
 
+        // Zusätzlich angemeldete Admins (JWT) zulassen, z. B. für die Meldungen im Admin-Bereich
+        public bool OrAdmin { get; set; }
+
         public void OnAuthorization(AuthorizationFilterContext context)
         {
+            if (OrAdmin && context.HttpContext.User.IsInRole("Admin")) return;
+
             var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DeviceOptions>>().Value;
             var provided = context.HttpContext.Request.Headers[HeaderName].ToString();
 

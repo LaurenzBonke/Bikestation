@@ -18,8 +18,9 @@ function skipToContent(event: MouseEvent<HTMLAnchorElement>) {
 }
 
 export default function App() {
-  const data = useStationData()
   const auth = useAuth()
+  const isAdmin = auth.session?.role === 'Admin'
+  const data = useStationData(isAdmin ? auth.session!.token : null)
   const route = useRoute()
   const status = useMyStatus(auth)
   const { t } = useI18n()
@@ -47,7 +48,7 @@ export default function App() {
       {route === 'boxes' && <BoxesPage auth={auth} status={status} />}
       {route === 'account' && <AccountPage auth={auth} />}
       {route === 'statistics' && <StatisticsPage />}
-      {route === 'overview' && <Dashboard data={data} />}
+      {route === 'overview' && <Dashboard data={data} isAdmin={isAdmin} />}
     </>
   )
 }

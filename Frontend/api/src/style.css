@@ -245,6 +245,19 @@ h2 { margin: 7px 0 0; color: var(--ink); font: 600 20px/1.25 'Space Grotesk', sa
 
 .count-total { color: var(--muted); font-size: 15px; line-height: 1.45; font-weight: 500; }
 
+.availability-answer { padding: 22px 0 10px; }
+
+/* Große, klare Aussage "Stellplatz 1 ist frei" – anklickbar zum Buchen */
+.free-callout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 20px 22px; border: 2px solid var(--ink); border-radius: 14px; color: var(--ink); text-decoration: none; }
+
+.free-callout:hover { background: var(--surface-2); }
+
+.free-callout-text { font: 600 clamp(26px, 5vw, 38px)/1.15 'Space Grotesk', sans-serif; letter-spacing: -.5px; }
+
+.free-callout-action { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 15px; font-weight: 700; white-space: nowrap; }
+
+.none-free { margin: 0; color: var(--ink); font: 600 clamp(22px, 4vw, 30px)/1.2 'Space Grotesk', sans-serif; }
+
 .summary-line { margin: 0 0 16px; color: var(--text); font-size: 14px; font-weight: 600; }
 
 .occupancy-frame { width: min(100%, 286px); padding: 12px 14px 10px; border: 1.5px solid var(--frame); border-radius: 15px; }
@@ -277,8 +290,6 @@ h2 { margin: 7px 0 0; color: var(--ink); font: 600 20px/1.25 'Space Grotesk', sa
 
 .spot-row { min-height: 66px; display: grid; grid-template-columns: 34px 34px minmax(120px, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
 
-.spot-row.has-warning { margin: 0 -12px; padding: 10px 12px; border-radius: 6px; background: var(--surface)6f4; }
-
 .spot-number { color: var(--muted); font: 600 13px 'Space Grotesk', sans-serif; }
 
 .spot-bike { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 6px; background: var(--surface-2); color: var(--icon); }
@@ -291,21 +302,24 @@ h2 { margin: 7px 0 0; color: var(--ink); font: 600 20px/1.25 'Space Grotesk', sa
 
 .sensor-values { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 
-.spot-status { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.spot-status { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 15px; font-weight: 700; white-space: nowrap; }
 
-.spot-status span { width: 9px; height: 9px; border-radius: 50%; }
+.spot-status.free { color: var(--ink); }
 
-.spot-status.free { color: var(--free-text); }
+.spot-status.taken { color: var(--muted); }
 
-.spot-status.free span { background: var(--free); }
+.spot-status.unknown, .spot-status.offline { color: var(--muted); }
 
-.spot-status.taken { color: var(--red); }
+.spot-book { color: var(--text); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
-.spot-status.taken span { background: var(--red-light); }
+/* Freier Platz = ganze Zeile ist ein Link zum Buchen */
+a.spot-row { color: inherit; text-decoration: none; margin: 0 -12px; padding: 10px 12px; border-radius: 8px; }
 
-.spot-status.unknown { color: var(--muted); }
+a.spot-row:hover { background: var(--surface-2); }
 
-.spot-status.unknown span { background: var(--grey-light); }
+a.spot-row:hover .spot-book { color: var(--ink); }
+
+.has-warning > .spot-row { margin: 0 -12px; padding: 10px 12px; border-radius: 6px; background: var(--warning-bg); }
 
 .tamper-warning { grid-column: 3 / -1; margin: 2px 0 0; color: var(--red); font-size: 13px; font-weight: 700; }
 

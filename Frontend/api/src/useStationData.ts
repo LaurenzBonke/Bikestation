@@ -13,7 +13,8 @@ export type StationData = {
   refresh: () => void
 }
 
-export function useStationData(): StationData {
+// adminToken: nur Admins laden die offenen Meldungen mit, normale Nutzer sehen sie nicht
+export function useStationData(adminToken: string | null = null): StationData {
   const [slots, setSlots] = useState<Slot[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [connected, setConnected] = useState(true)
@@ -30,7 +31,7 @@ export function useStationData(): StationData {
       try {
         const [newSlots, newAlerts] = await Promise.all([
           api.getSlots(controller.signal),
-          api.getAlerts(controller.signal),
+          adminToken ? api.getAlerts(adminToken, controller.signal) : Promise.resolve([]),
         ])
         setSlots(newSlots)
         setAlerts(newAlerts)
@@ -53,7 +54,7 @@ export function useStationData(): StationData {
       controller.abort()
       window.clearInterval(timer)
     }
-  }, [refreshKey])
+  }, [refreshKey, adminToken])
 
   return { slots, alerts, connected, loading, lastFetched, refresh }
 }
