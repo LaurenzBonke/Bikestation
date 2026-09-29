@@ -19,7 +19,7 @@ import urllib.error
 import urllib.request
 import warnings
 
-from gpiozero import AngularServo, DistanceSensor
+from gpiozero import LED, AngularServo, DistanceSensor
 from gpiozero.pins.lgpio import LGPIOFactory
 
 # Hinweise von gpiozero zu pigpio sind hier unwichtig
@@ -29,6 +29,7 @@ warnings.filterwarnings("ignore", module="gpiozero")
 TRIGGER_PIN = 4
 ECHO_PIN = 14
 SERVO_PIN = 15
+LED_GRUEN_PIN = 17   # grün = frei; aus, sobald ein Fahrrad geparkt und die Tür zu ist
 SCHWELLE_CM = 7.0
 
 WINKEL_OFFEN = 90
@@ -75,6 +76,8 @@ def main() -> None:
     sensor = DistanceSensor(echo=ECHO_PIN, trigger=TRIGGER_PIN, max_distance=1.0, pin_factory=LGPIOFactory())
     servo = AngularServo(SERVO_PIN, min_angle=0, max_angle=180,
                          min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000, pin_factory=LGPIOFactory())
+    led_gruen = LED(LED_GRUEN_PIN, pin_factory=LGPIOFactory())
+    led_gruen.on()
     api_key = api_key_lesen()
     riegel_offen = None
     letzter_zustand = None
@@ -103,11 +106,19 @@ def main() -> None:
             if antwort is not None:
                 zustand = antwort.get("boxState", "?")
                 riegel(bool(antwort.get("lockOpen")))
+                # Grün aus, solange ein Fahrrad eingeschlossen ist (oder die Box nach Alarm gesperrt ist)
+                geparkt = zustand in ("Locked", "Blocked")
                 modus = f"Server: {zustand}"
             else:
                 # Ohne Server: alte Logik
-                riegel(abstand_cm >= SCHWELLE_CM)
+                geparkt = abstand_cm < SCHWELLE_CM
+                riegel(not geparkt)
                 modus = "lokal (Server nicht erreichbar)"
+
+            if geparkt:
+                led_gruen.off()
+            else:
+                led_gruen.on()
 
             # Bei Änderung sofort, sonst alle 5 Sekunden eine Statuszeile
             if modus != letzter_zustand or time.monotonic() - letzte_ausgabe >= 5:
@@ -116,6 +127,8 @@ def main() -> None:
                 letzte_ausgabe = time.monotonic()
             time.sleep(INTERVALL_S)
     finally:
+        led_gruen.off()
+        led_gruen.close()
         servo.detach()
         servo.close()
         sensor.close()
