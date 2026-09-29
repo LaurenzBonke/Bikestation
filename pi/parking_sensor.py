@@ -32,9 +32,12 @@ SERVO_PIN = 15
 LED_GRUEN_PIN = 17   # grün = frei; aus, sobald ein Fahrrad geparkt und die Tür zu ist
 SCHWELLE_CM = 7.0
 
-WINKEL_OFFEN = 90
-WINKEL_GESCHLOSSEN = 0
-BEWEGUNGSDAUER_S = 0.6
+# Winkel aus "test servo.py" (am Modell ausprobiert)
+WINKEL_OFFEN = 100
+WINKEL_GESCHLOSSEN = 50
+BEWEGUNGSDAUER_S = 0.6   # Zeit, bis der Servo sicher angekommen ist
+SCHRITTE = 10            # sanft in kleinen Schritten fahren statt ruckartig
+LOKAL_BESTAETIGUNG = 3   # ohne Server: so viele gleiche Messungen hintereinander, bevor die Schranke fährt
 
 SLOT_ID = 1
 API_URL = "http://192.168.1.198:8080"
@@ -80,17 +83,25 @@ def main() -> None:
     led_gruen.on()
     api_key = api_key_lesen()
     riegel_offen = None
+    riegel_winkel = None
+    lokal_zaehler = 0
     letzter_zustand = None
     letzte_ausgabe = 0.0
 
     def riegel(offen: bool) -> None:
-        nonlocal riegel_offen
+        nonlocal riegel_offen, riegel_winkel
         if riegel_offen == offen:
             return
-        servo.angle = WINKEL_OFFEN if offen else WINKEL_GESCHLOSSEN
+        ziel = WINKEL_OFFEN if offen else WINKEL_GESCHLOSSEN
+        if riegel_winkel is None:
+            servo.angle = ziel  # Startposition unbekannt -> direkt anfahren
+        else:
+            for i in range(1, SCHRITTE + 1):
+                servo.angle = riegel_winkel + (ziel - riegel_winkel) * i / SCHRITTE
+                time.sleep(0.03)
         time.sleep(BEWEGUNGSDAUER_S)
-        servo.detach()
-        riegel_offen = offen
+        servo.detach()  # Signal aus: kein Zittern, weniger Strom
+        riegel_offen, riegel_winkel = offen, ziel
         print("Riegel GEÖFFNET" if offen else "Riegel geschlossen")
 
     print("Überwachung gestartet (Strg+C zum Beenden) ...")
@@ -110,9 +121,14 @@ def main() -> None:
                 geparkt = zustand in ("Locked", "Blocked")
                 modus = f"Server: {zustand}"
             else:
-                # Ohne Server: alte Logik
-                geparkt = abstand_cm < SCHWELLE_CM
-                riegel(not geparkt)
+                # Ohne Server: alte Logik, aber erst nach mehreren gleichen Messungen (keine Ausreißer)
+                erkannt = abstand_cm < SCHWELLE_CM
+                aktuell = riegel_offen is False
+                lokal_zaehler = lokal_zaehler + 1 if erkannt != aktuell else 0
+                if riegel_offen is None or lokal_zaehler >= LOKAL_BESTAETIGUNG:
+                    riegel(not erkannt)
+                    lokal_zaehler = 0
+                geparkt = riegel_offen is False
                 modus = "lokal (Server nicht erreichbar)"
 
             if geparkt:
