@@ -32,6 +32,7 @@ namespace bikestation.Controllers
             return slots.Select(s => new BoxDto(
                 s.Id,
                 s.Name,
+                s.Location,
                 s.BoxState,
                 s.LockOpen,
                 s.Status == SlotStatus.Occupied,
@@ -60,6 +61,60 @@ namespace bikestation.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Release(int id) => ToResponse(await boxService.ReleaseAsync(id, User.UserId()));
 
+        // Belegung: welcher Nutzer ist gerade an welcher Box (nur Admins)
+        [HttpGet("occupancy")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<List<BoxOccupancyDto>>> Occupancy()
+        {
+            var onlineSince = DateTime.UtcNow.AddSeconds(-deviceOptions.Value.OfflineAfterSeconds);
+            var slots = await db.Slots.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
+            var parkingIds = slots.Where(s => s.ActiveParkingId != null).Select(s => s.ActiveParkingId!.Value).ToList();
+            var parkings = await db.Parkings.AsNoTracking()
+                .Where(p => parkingIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.User!.Username, p.BookedAt, p.ParkedAt })
+                .ToDictionaryAsync(p => p.Id);
+
+            return slots.Select(s =>
+            {
+                var parking = s.ActiveParkingId is int id && parkings.TryGetValue(id, out var p) ? p : null;
+                return new BoxOccupancyDto(
+                    s.Id,
+                    s.Name,
+                    s.Location,
+                    s.BoxState,
+                    s.LockOpen,
+                    s.LastUpdated != null && s.LastUpdated >= onlineSince,
+                    parking?.Username,
+                    parking?.BookedAt,
+                    parking?.ParkedAt,
+                    s.BoxStateChangedAt);
+            }).ToList();
+        }
+
+        // Neue Station anlegen – bekommt die nächste freie Nummer (slotId für die Hardware)
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddStation(StationRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Location)) return ValidationProblem();
+            var slot = await boxService.AddStationAsync(request.Location);
+            return Created($"/api/boxes/{slot.Id}", new { slot.Id, slot.Name, slot.Location });
+        }
+
+        // Ort einer Station ändern
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateStation(int id, StationRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Location)) return ValidationProblem();
+            return ToResponse(await boxService.UpdateStationAsync(id, request.Location));
+        }
+
+        // Station löschen – nur wenn sie frei ist (kein Fahrrad, keine Buchung)
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteStation(int id) => ToResponse(await boxService.DeleteStationAsync(id));
+
         // Protokoll: wer hat wann welche Box gebucht, geöffnet, geschlossen – neueste zuerst
         [HttpGet("events")]
         [Authorize(Roles = "Admin")]
@@ -71,10 +126,10 @@ namespace bikestation.Controllers
             var events = await query
                 .OrderByDescending(e => e.Timestamp).ThenByDescending(e => e.Id)
                 .Take(limit)
-                .Select(e => new { e.Id, e.SlotId, SlotName = e.Slot!.Name, Username = e.User == null ? null : e.User.Username, e.Type, e.Timestamp })
+                .Select(e => new { e.Id, e.SlotId, SlotName = e.Slot!.Name, e.Slot.Location, Username = e.User == null ? null : e.User.Username, e.Type, e.Timestamp })
                 .ToListAsync();
             return events.Select(e => new BoxEventDto(
-                e.Id, e.SlotId, e.SlotName, e.Username, e.Type, BoxEvent.OpensLock(e.Type), e.Timestamp)).ToList();
+                e.Id, e.SlotId, e.SlotName, e.Location, e.Username, e.Type, BoxEvent.OpensLock(e.Type), e.Timestamp)).ToList();
         }
 
         private async Task<IActionResult> Run(Func<int, Task<BoxActionResult>> action)

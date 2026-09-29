@@ -52,23 +52,24 @@ namespace bikestation.Tests
         }
 
         [Fact]
-        public async Task Stationsanzahl_kommt_aus_der_Konfiguration()
+        public async Task Konfiguration_legt_Stationen_nur_beim_ersten_Start_an()
         {
-            // Erst 3 Boxen mit Messwert an Box 3, dann Neustart mit nur einer Box
             var file = Path.Combine(Path.GetTempPath(), $"bikestation-stationen-{Guid.NewGuid():N}.db");
             var db = $"Data Source={file}";
-            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db }))
-            {
-                await app.DeviceClient().PostAsJsonAsync("/api/sensor-data", new { slotId = 3, pressure = 0, distance = 80, vibration = false });
-                Assert.Equal(3, (await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/slots")).GetArrayLength());
-            }
-            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db, ["Box:StationCount"] = "1" }))
+            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db, ["Box:StationCount"] = "1", ["Box:Locations:0"] = "Hackathon Halle" }))
             {
                 var slots = await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/slots");
                 Assert.Equal(1, slots.GetArrayLength());
-                Assert.Equal(1, slots[0].GetProperty("id").GetInt32());
-                var response = await app.DeviceClient().PostAsJsonAsync("/api/sensor-data", new { slotId = 3, pressure = 0, distance = 80, vibration = false });
-                Assert.False(response.IsSuccessStatusCode);
+                Assert.Equal("Hackathon Halle", slots[0].GetProperty("location").GetString());
+                var admin = await app.AdminClientAsync();
+                (await admin.PostAsJsonAsync("/api/boxes", new { location = "Mensa" })).EnsureSuccessStatusCode();
+            }
+            // Neustart mit anderer Konfiguration: vom Admin angelegte Station bleibt erhalten
+            using (var app = new BikestationApp(settings: new() { ["ConnectionStrings:Bikestation"] = db, ["Box:StationCount"] = "1" }))
+            {
+                var boxes = await app.CreateClient().GetFromJsonAsync<JsonElement>("/api/boxes");
+                Assert.Equal(2, boxes.GetArrayLength());
+                Assert.Equal("Mensa", boxes[1].GetProperty("location").GetString());
             }
         }
 

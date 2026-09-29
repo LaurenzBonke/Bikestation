@@ -4,6 +4,7 @@ import SlotList from './SlotList'
 import AlertsPanel from './AlertsPanel'
 import ForecastPanel from './ForecastPanel'
 import { displayStatus, slotName } from '../slotStatus'
+import { bookLink } from '../useRoute'
 import { useI18n } from '../i18n'
 
 type DashboardProps = {
@@ -45,7 +46,7 @@ export default function Dashboard({ data, isAdmin }: DashboardProps) {
           <div className="panel-heading">
             <div>
               <p className="section-kicker">{t('dash.now')}</p>
-              <h2>{t('dash.available')}</h2>
+              <h2>{t('dash.freeHeading')}</h2>
             </div>
             <span className="live-label">
               <span aria-hidden="true"></span> {t('dash.refresh')}
@@ -58,16 +59,25 @@ export default function Dashboard({ data, isAdmin }: DashboardProps) {
             <>
               <div className="availability-answer" aria-live="polite">
                 {free > 0 ? (
-                  <a className="free-callout" href="#boxen">
-                    <span className="free-callout-text">
-                      {free === 1 && slots.length === 1
-                        ? t('dash.oneFree', { slot: slotName(t, freeSlots[0].id) })
-                        : t('dash.someFree', { free, total: slots.length })}
-                    </span>
-                    <span className="free-callout-action">
-                      {t('dash.bookNow')} <span aria-hidden="true">→</span>
-                    </span>
-                  </a>
+                  <ul className="free-spots">
+                    {freeSlots.map((slot) => (
+                      <li key={slot.id}>
+                        <a className="free-callout" href={bookLink(slot.id)}>
+                          <span className="free-callout-body">
+                            <span className="free-callout-text">{t('dash.spotFree', { slot: slotName(t, slot.id) })}</span>
+                            {slot.location && (
+                              <span className="free-callout-location">
+                                <PinIcon /> {slot.location}
+                              </span>
+                            )}
+                          </span>
+                          <span className="free-callout-action">
+                            {t('dash.bookNow')} <span aria-hidden="true">→</span>
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
                   <p className="none-free">{offline === slots.length ? t('dash.stationOffline') : t('dash.noneFree')}</p>
                 )}
@@ -96,5 +106,14 @@ export default function Dashboard({ data, isAdmin }: DashboardProps) {
         </span>
       </footer>
     </main>
+  )
+}
+
+export function PinIcon() {
+  return (
+    <svg className="pin-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </svg>
   )
 }

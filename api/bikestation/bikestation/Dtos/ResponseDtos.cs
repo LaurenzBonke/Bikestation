@@ -7,6 +7,7 @@ namespace bikestation.Dtos
     public record SlotDto(
         int Id,
         string Name,
+        string Location,
         SlotStatus Status,
         string StatusText,
         DateTime? LastUpdated,

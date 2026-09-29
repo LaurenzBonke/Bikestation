@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { ApiError } from '../api'
 import type { Auth } from '../useAuth'
 import { useI18n, type TranslationKey } from '../i18n'
+import { notificationsSupported } from '../useAlarmSound'
 
 type Mode = 'login' | 'register'
 
@@ -27,6 +28,7 @@ export default function AccountPage({ auth }: { auth: Auth }) {
             {t('admin.logout')}
           </button>
         </div>
+        <AlarmNotifications />
       </main>
     )
   }
@@ -181,5 +183,34 @@ function AccountForm({ auth }: { auth: Auth }) {
         <span aria-hidden="true">→</span>
       </button>
     </form>
+  )
+}
+
+// Alarm auch als Benachrichtigung aufs Handy/den PC, wenn die Seite im Hintergrund ist
+function AlarmNotifications() {
+  const { t } = useI18n()
+  const supported = notificationsSupported()
+  const [permission, setPermission] = useState(supported ? Notification.permission : 'denied')
+
+  async function request() {
+    setPermission(await Notification.requestPermission())
+  }
+
+  return (
+    <section className="admin-panel login-panel notify-panel" aria-labelledby="notify-heading">
+      <h2 id="notify-heading">{t('notify.heading')}</h2>
+      <p className="chart-note">{t('notify.text')}</p>
+      {!supported ? (
+        <p className="chart-note">{t('notify.needsHttps')}</p>
+      ) : permission === 'granted' ? (
+        <p className="save-message">{t('notify.on')}</p>
+      ) : permission === 'denied' ? (
+        <p className="chart-note">{t('notify.blocked')}</p>
+      ) : (
+        <button className="primary-button" type="button" onClick={request}>
+          {t('notify.enable')}
+        </button>
+      )}
+    </section>
   )
 }

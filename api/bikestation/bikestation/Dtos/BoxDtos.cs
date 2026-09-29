@@ -6,6 +6,7 @@ namespace bikestation.Dtos
     public record BoxDto(
         int Id,
         string Name,
+        string Location,
         BoxState State,
         bool LockOpen,
         bool BikeDetected,
@@ -13,11 +14,31 @@ namespace bikestation.Dtos
         bool IsMine,
         DateTime? StateChangedAt);
 
+    // Station anlegen oder Ort ändern (nur für Admins)
+    public record StationRequest(
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(80, MinimumLength = 1)]
+        string Location);
+
+    // Aktuelle Belegung einer Box mit Nutzer (nur für Admins)
+    public record BoxOccupancyDto(
+        int Id,
+        string Name,
+        string Location,
+        BoxState State,
+        bool LockOpen,
+        bool IsOnline,
+        string? Username,
+        DateTime? BookedAt,
+        DateTime? ParkedAt,
+        DateTime? StateChangedAt);
+
     // Eintrag im Box-Protokoll (nur für Admins)
     public record BoxEventDto(
         int Id,
         int SlotId,
         string SlotName,
+        string Location,
         string? Username,
         BoxEventType Type,
         bool LockOpen,

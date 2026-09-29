@@ -107,6 +107,48 @@ namespace bikestation.Services
             return BoxActionResult.Ok;
         });
 
+        // ---------- Stationen verwalten (Admin) ----------
+
+        public const int MaxLocationLength = 80;
+
+        // Neue Station mit der nächsten freien Nummer. Die Hardware meldet sich danach mit dieser slotId.
+        public Task<Slot> AddStationAsync(string location) => LockedAsync(async () =>
+        {
+            var id = (await db.Slots.MaxAsync(s => (int?)s.Id) ?? 0) + 1;
+            var slot = new Slot { Id = id, Name = $"Stellplatz {id}", Location = location.Trim() };
+            db.Slots.Add(slot);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Station {SlotId} ({Location}) angelegt", id, slot.Location);
+            return slot;
+        });
+
+        public Task<BoxActionResult> UpdateStationAsync(int slotId, string location) => LockedAsync(async () =>
+        {
+            var slot = await db.Slots.FindAsync(slotId);
+            if (slot is null) return BoxActionResult.NotFound;
+            slot.Location = location.Trim();
+            await db.SaveChangesAsync();
+            return BoxActionResult.Ok;
+        });
+
+        // Löschen nur, wenn niemand die Box nutzt – sonst wäre ein Fahrrad eingeschlossen.
+        // Messwerte, Meldungen, Parkvorgänge und Protokoll dieser Station werden mit gelöscht.
+        public Task<BoxActionResult> DeleteStationAsync(int slotId) => LockedAsync(async () =>
+        {
+            var slot = await db.Slots.FindAsync(slotId);
+            if (slot is null) return BoxActionResult.NotFound;
+            if (slot.BoxState != BoxState.Free || slot.ActiveParkingId is not null) return BoxActionResult.WrongState;
+
+            await db.BoxEvents.Where(e => e.SlotId == slotId).ExecuteDeleteAsync();
+            await db.Alerts.Where(a => a.SlotId == slotId).ExecuteDeleteAsync();
+            await db.SensorReadings.Where(r => r.SlotId == slotId).ExecuteDeleteAsync();
+            await db.Parkings.Where(p => p.SlotId == slotId).ExecuteDeleteAsync();
+            db.Slots.Remove(slot);
+            await db.SaveChangesAsync();
+            logger.LogWarning("Station {SlotId} ({Location}) gelöscht", slotId, slot.Location);
+            return BoxActionResult.Ok;
+        });
+
         // ---------- Sensordaten und Zeitlimits ----------
 
         // Wird bei jeder Messung aufgerufen (vor SaveChanges des Aufrufers)

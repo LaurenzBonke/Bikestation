@@ -13,6 +13,7 @@ export type SensorReading = {
 export type Slot = {
   id: number
   name: string
+  location: string
   status: SlotStatus
   statusText: string
   lastUpdated: string | null
@@ -99,6 +100,7 @@ export type BoxState = 'Free' | 'OpenForParking' | 'Locked' | 'OpenForPickup' | 
 export type Box = {
   id: number
   name: string
+  location: string
   state: BoxState
   lockOpen: boolean
   bikeDetected: boolean
@@ -119,6 +121,19 @@ export type MyParking = {
   deadlineAt: string | null
 }
 
+export type BoxOccupancy = {
+  id: number
+  name: string
+  location: string
+  state: BoxState
+  lockOpen: boolean
+  isOnline: boolean
+  username: string | null
+  bookedAt: string | null
+  parkedAt: string | null
+  stateChangedAt: string | null
+}
+
 export type BoxEventType =
   | 'Booked'
   | 'Cancelled'
@@ -134,6 +149,7 @@ export type BoxEvent = {
   id: number
   slotId: number
   slotName: string
+  location: string
   username: string | null
   type: BoxEventType
   lockOpen: boolean
@@ -212,6 +228,13 @@ export const api = {
   cancelBox: (id: number, token: string) => request<void>(`/boxes/${id}/cancel`, { method: 'POST' }, token),
   pickupBox: (id: number, token: string) => request<void>(`/boxes/${id}/pickup`, { method: 'POST' }, token),
   releaseBox: (id: number, token: string) => request<void>(`/boxes/${id}/release`, { method: 'POST' }, token),
+  addStation: (location: string, token: string) =>
+    request<{ id: number }>('/boxes', { method: 'POST', body: JSON.stringify({ location }) }, token),
+  updateStation: (id: number, location: string, token: string) =>
+    request<void>(`/boxes/${id}`, { method: 'PUT', body: JSON.stringify({ location }) }, token),
+  deleteStation: (id: number, token: string) => request<void>(`/boxes/${id}`, { method: 'DELETE' }, token),
+  getBoxOccupancy: (token: string, signal?: AbortSignal) =>
+    request<BoxOccupancy[]>('/boxes/occupancy', { signal }, token),
   getBoxEvents: (token: string, limit = 200, signal?: AbortSignal) =>
     request<BoxEvent[]>(`/boxes/events?limit=${limit}`, { signal }, token),
   resolveAlert: (id: number, token: string) => request<void>(`/alerts/${id}/resolve`, { method: 'POST' }, token),

@@ -5,12 +5,20 @@ import type { MyStatus } from '../useMyStatus'
 import { formatDateTime } from '../format'
 import { slotName } from '../slotStatus'
 import { useI18n } from '../i18n'
+import { useAlarmSound } from '../useAlarmSound'
 
 // Meldungen, die den angemeldeten Nutzer betreffen – auf jeder Seite sichtbar, bis er sie bestätigt
 export default function AlarmBanner({ auth, status }: { auth: Auth; status: MyStatus }) {
   const { t, locale } = useI18n()
   const [pending, setPending] = useState<number | null>(null)
   const alerts = status.me?.alerts ?? []
+  // Ton nur beim echten Alarm (Fahrrad ohne Öffnen entfernt); Wegklicken der Meldung beendet ihn
+  const removed = alerts.find((a) => a.type === 'BikeRemoved')
+  const ringing = !!auth.session && !!removed
+  const sound = useAlarmSound(
+    ringing,
+    removed && { title: t('alarm.notifyTitle'), body: t('alarm.bikeRemoved', { slot: slotName(t, removed.slotId) }) },
+  )
   if (!auth.session || alerts.length === 0) return null
 
   async function acknowledge(alert: Alert) {
@@ -42,6 +50,11 @@ export default function AlarmBanner({ auth, status }: { auth: Auth; status: MySt
                     : t('alarm.tamper', { slot })}
               </strong>
               {critical && <span>{t('alarm.bikeRemovedHint')}</span>}
+              {critical && sound.needsGesture && (
+                <button className="link-button" type="button" onClick={sound.enable}>
+                  {t('alarm.enableSound')}
+                </button>
+              )}
               <time dateTime={alert.timestamp}>{formatDateTime(alert.timestamp, locale)}</time>
             </div>
             <button
@@ -50,7 +63,7 @@ export default function AlarmBanner({ auth, status }: { auth: Auth; status: MySt
               disabled={pending === alert.id}
               onClick={() => acknowledge(alert)}
             >
-              {t('alarm.ack')}
+              {critical ? t('alarm.ackStop') : t('alarm.ack')}
             </button>
           </section>
         )
