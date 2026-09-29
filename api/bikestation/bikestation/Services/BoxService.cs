@@ -57,6 +57,7 @@ namespace bikestation.Services
 
             slot.ActiveParkingId = parking.Id;
             SetState(slot, BoxState.OpenForParking, now);
+            Log(slot, BoxEventType.Booked, userId, now);
             await db.SaveChangesAsync();
             logger.LogInformation("Box {SlotId} von Nutzer {UserId} gebucht, Riegel öffnet", slot.Id, userId);
             return BoxActionResult.Ok;
@@ -68,7 +69,9 @@ namespace bikestation.Services
             if (result != BoxActionResult.Ok) return result;
             if (slot!.BoxState != BoxState.OpenForParking) return BoxActionResult.WrongState;
 
-            EndParking(slot, parking!, ParkingEndReason.Cancelled, DateTime.UtcNow);
+            var now = DateTime.UtcNow;
+            EndParking(slot, parking!, ParkingEndReason.Cancelled, now);
+            Log(slot, BoxEventType.Cancelled, userId, now);
             await db.SaveChangesAsync();
             return BoxActionResult.Ok;
         });
@@ -83,20 +86,24 @@ namespace bikestation.Services
             var now = DateTime.UtcNow;
             parking!.PickupRequestedAt = now;
             SetState(slot, BoxState.OpenForPickup, now);
+            Log(slot, BoxEventType.PickupRequested, userId, now);
             await db.SaveChangesAsync();
             logger.LogInformation("Box {SlotId}: Abholung angefordert, Riegel öffnet", slot.Id);
             return BoxActionResult.Ok;
         });
 
         // Admin gibt eine nach Alarm gesperrte Box nach der Kontrolle wieder frei
-        public Task<BoxActionResult> ReleaseAsync(int slotId) => LockedAsync(async () =>
+        public Task<BoxActionResult> ReleaseAsync(int slotId, int? adminId = null) => LockedAsync(async () =>
         {
             var slot = await db.Slots.FindAsync(slotId);
             if (slot is null) return BoxActionResult.NotFound;
             if (slot.BoxState != BoxState.Blocked) return BoxActionResult.WrongState;
 
-            SetState(slot, BoxState.Free, DateTime.UtcNow);
+            var now = DateTime.UtcNow;
+            SetState(slot, BoxState.Free, now);
+            Log(slot, BoxEventType.Released, adminId, now);
             await db.SaveChangesAsync();
+            logger.LogInformation("Box {SlotId} von Admin {AdminId} freigegeben", slot.Id, adminId);
             return BoxActionResult.Ok;
         });
 
@@ -123,12 +130,14 @@ namespace bikestation.Services
                 case BoxState.OpenForParking when HeldFor(SinceState(slot, slot.BikePresentSince), now, _options.ParkConfirmSeconds):
                     if (parking is not null) parking.ParkedAt = now;
                     SetState(slot, BoxState.Locked, now);
+                    Log(slot, BoxEventType.Parked, parking?.UserId, now);
                     logger.LogInformation("Box {SlotId}: Fahrrad erkannt, Riegel schließt", slot.Id);
                     break;
 
                 case BoxState.OpenForPickup when HeldFor(SinceState(slot, slot.BikeAbsentSince), now, _options.LeaveConfirmSeconds):
                     if (parking is not null) EndParking(slot, parking, ParkingEndReason.Completed, now);
                     else SetState(slot, BoxState.Free, now);
+                    Log(slot, BoxEventType.PickedUp, parking?.UserId, now);
                     logger.LogInformation("Box {SlotId}: Fahrrad abgeholt, Box wieder frei", slot.Id);
                     break;
 
@@ -154,12 +163,14 @@ namespace bikestation.Services
                 {
                     if (parking is not null) EndParking(slot, parking, ParkingEndReason.TimedOut, now);
                     else SetState(slot, BoxState.Free, now);
+                    Log(slot, BoxEventType.ParkingTimedOut, parking?.UserId, now);
                     logger.LogInformation("Box {SlotId}: kein Fahrrad eingestellt, wieder frei", slot.Id);
                     changed++;
                 }
                 else if (slot.BoxState == BoxState.OpenForPickup && HeldFor(since, now, _options.OpenForPickupTimeoutSeconds))
                 {
                     SetState(slot, BoxState.Locked, now);
+                    Log(slot, BoxEventType.PickupTimedOut, parking?.UserId, now);
                     logger.LogInformation("Box {SlotId}: Fahrrad nicht entnommen, wieder verriegelt", slot.Id);
                     changed++;
                 }
@@ -210,6 +221,7 @@ namespace bikestation.Services
             }
             slot.ActiveParkingId = null;
             SetState(slot, BoxState.Blocked, now);
+            Log(slot, BoxEventType.BikeRemoved, parking?.UserId, now);
             logger.LogWarning("ALARM: Fahrrad aus Box {SlotId} ohne Öffnen entfernt", slot.Id);
         }
 
@@ -220,6 +232,9 @@ namespace bikestation.Services
             slot.ActiveParkingId = null;
             SetState(slot, BoxState.Free, now);
         }
+
+        private void Log(Slot slot, BoxEventType type, int? userId, DateTime now) =>
+            db.BoxEvents.Add(new BoxEvent { SlotId = slot.Id, UserId = userId, Type = type, Timestamp = now });
 
         private static void SetState(Slot slot, BoxState state, DateTime now)
         {

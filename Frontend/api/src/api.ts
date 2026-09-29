@@ -119,6 +119,27 @@ export type MyParking = {
   deadlineAt: string | null
 }
 
+export type BoxEventType =
+  | 'Booked'
+  | 'Cancelled'
+  | 'Parked'
+  | 'PickupRequested'
+  | 'PickedUp'
+  | 'ParkingTimedOut'
+  | 'PickupTimedOut'
+  | 'BikeRemoved'
+  | 'Released'
+
+export type BoxEvent = {
+  id: number
+  slotId: number
+  slotName: string
+  username: string | null
+  type: BoxEventType
+  lockOpen: boolean
+  timestamp: string
+}
+
 export type ParkingEndReason = 'Completed' | 'Cancelled' | 'TimedOut' | 'BikeRemoved'
 
 export type ParkingHistory = {
@@ -191,6 +212,8 @@ export const api = {
   cancelBox: (id: number, token: string) => request<void>(`/boxes/${id}/cancel`, { method: 'POST' }, token),
   pickupBox: (id: number, token: string) => request<void>(`/boxes/${id}/pickup`, { method: 'POST' }, token),
   releaseBox: (id: number, token: string) => request<void>(`/boxes/${id}/release`, { method: 'POST' }, token),
+  getBoxEvents: (token: string, limit = 200, signal?: AbortSignal) =>
+    request<BoxEvent[]>(`/boxes/events?limit=${limit}`, { signal }, token),
   resolveAlert: (id: number, token: string) => request<void>(`/alerts/${id}/resolve`, { method: 'POST' }, token),
   generateDemoData: (days: number, token: string) =>
     request<{ readings: number }>(`/demo/generate?days=${days}`, { method: 'POST' }, token),

@@ -43,6 +43,33 @@ namespace bikestation.Data
 
             var stationCount = Math.Max(1, scope.ServiceProvider.GetRequiredService<IOptions<BoxOptions>>().Value.StationCount);
             SyncStations(db, stationCount, logger);
+            BackfillBoxEvents(db, logger);
+        }
+
+        // Ältere Datenbanken haben noch kein Box-Protokoll: aus den gespeicherten Parkvorgängen nachtragen
+        public static void BackfillBoxEvents(BikestationDbContext db, ILogger logger)
+        {
+            if (db.BoxEvents.Any() || !db.Parkings.Any()) return;
+
+            foreach (var p in db.Parkings.AsNoTracking().ToList())
+            {
+                void Add(BoxEventType type, DateTime? at)
+                {
+                    if (at is DateTime time) db.BoxEvents.Add(new BoxEvent { SlotId = p.SlotId, UserId = p.UserId, Type = type, Timestamp = time });
+                }
+                Add(BoxEventType.Booked, p.BookedAt);
+                Add(BoxEventType.Parked, p.ParkedAt);
+                Add(BoxEventType.PickupRequested, p.PickupRequestedAt);
+                Add(p.EndReason switch
+                {
+                    ParkingEndReason.Cancelled => BoxEventType.Cancelled,
+                    ParkingEndReason.TimedOut => BoxEventType.ParkingTimedOut,
+                    ParkingEndReason.BikeRemoved => BoxEventType.BikeRemoved,
+                    _ => BoxEventType.PickedUp
+                }, p.EndedAt);
+            }
+            var count = db.SaveChanges();
+            logger.LogInformation("Box-Protokoll aus {Count} gespeicherten Ereignissen nachgetragen", count);
         }
 
         // Legt die Boxen 1..N an und entfernt Boxen darüber (samt Messwerten, Meldungen und Parkvorgängen)

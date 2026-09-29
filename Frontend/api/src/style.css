@@ -719,3 +719,7 @@ a.primary-button, a.secondary-button { text-decoration: none; }
   .alarm-stack { padding: 0 14px; }
   .history-list li { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* Breite Tabellen (Box-Protokoll) auf dem Handy seitlich scrollbar statt die Seite zu sprengen */
+.table-scroll { overflow-x: auto; }
+.table-scroll .data-table td, .table-scroll .data-table th { white-space: nowrap; }

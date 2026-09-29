@@ -209,6 +209,14 @@ namespace bikestation.Tests
             Assert.Equal(HttpStatusCode.Conflict, (await user.PostAsync("/api/boxes/2/book", null)).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent, (await admin.PostAsync("/api/boxes/2/release", null)).StatusCode);
             Assert.Equal("Free", (await Box(user, 2)).GetProperty("state").GetString());
+
+            // Protokoll zeigt den ganzen Ablauf mit Nutzer (neueste zuerst), nur für Admins
+            var events = (await admin.GetFromJsonAsync<JsonElement[]>("/api/boxes/events?slotId=2"))!;
+            Assert.Equal(["Released", "BikeRemoved", "Parked", "Booked"], events.Select(e => e.GetProperty("type").GetString()));
+            Assert.Equal(BikestationApp.AdminUser, events[0].GetProperty("username").GetString());
+            Assert.All(events[1..], e => Assert.Equal("anna", e.GetProperty("username").GetString()));
+            Assert.True(events[3].GetProperty("lockOpen").GetBoolean());
+            Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/boxes/events")).StatusCode);
         }
 
         [Fact]

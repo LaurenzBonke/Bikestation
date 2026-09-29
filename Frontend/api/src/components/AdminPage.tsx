@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { ApiError, api, type Alert } from '../api'
+import { useEffect, useState, type FormEvent } from 'react'
+import { ApiError, api, type Alert, type BoxEvent } from '../api'
 import type { Auth } from '../useAuth'
 import type { StationData } from '../useStationData'
 import { formatDateTime, formatNumber, formatTime } from '../format'
@@ -74,6 +74,85 @@ function BlockedBoxes({ auth }: { auth: Auth }) {
             </li>
           ))}
         </ul>
+      )}
+    </section>
+  )
+}
+
+// Protokoll: wer hat wann welche Box gebucht, geöffnet und geschlossen
+function BoxLog({ auth }: { auth: Auth }) {
+  const { t, locale } = useI18n()
+  const token = auth.session!.token
+  const [events, setEvents] = useState<BoxEvent[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    async function load() {
+      try {
+        setEvents(await api.getBoxEvents(token, 200, controller.signal))
+        setFailed(false)
+      } catch (err) {
+        if (controller.signal.aborted) return
+        if (err instanceof ApiError && err.status === 401) auth.logout('login.expired')
+        else setFailed(true)
+      }
+    }
+    load()
+    const timer = window.setInterval(load, 5000)
+    return () => {
+      controller.abort()
+      window.clearInterval(timer)
+    }
+  }, [token, auth])
+
+  const format = new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+
+  return (
+    <section className="admin-panel admin-section" aria-labelledby="log-heading">
+      <p className="section-kicker">{t('admin.logKicker')}</p>
+      <h2 id="log-heading">{t('admin.logHeading')}</h2>
+      <p className="chart-note">{t('admin.logText')}</p>
+      {failed && (
+        <p className="form-error" role="alert">
+          {t('error.generic')}
+        </p>
+      )}
+      {events && events.length === 0 && <p className="alerts-empty">{t('admin.logEmpty')}</p>}
+      {events && events.length > 0 && (
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th scope="col">{t('admin.logTime')}</th>
+                <th scope="col">{t('admin.logBox')}</th>
+                <th scope="col">{t('admin.logUser')}</th>
+                <th scope="col">{t('admin.logEvent')}</th>
+                <th scope="col">{t('admin.logLock')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((e) => (
+                <tr key={e.id}>
+                  <td>
+                    <time dateTime={e.timestamp}>{format.format(new Date(e.timestamp))}</time>
+                  </td>
+                  <td>{slotName(t, e.slotId)}</td>
+                  <td>{e.username ?? '–'}</td>
+                  <td>{t(`event.${e.type}`)}</td>
+                  <td>{e.lockOpen ? t('admin.lockOpen') : t('admin.lockClosed')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   )
@@ -264,6 +343,8 @@ function AdminArea({ auth, data }: AdminPageProps) {
       </section>
 
       <BlockedBoxes auth={auth} />
+
+      <BoxLog auth={auth} />
 
       <section className="admin-panel admin-section" aria-labelledby="demo-heading">
         <p className="section-kicker">{t('admin.demoKicker')}</p>

@@ -11,6 +11,7 @@ namespace bikestation.Data
         public DbSet<Alert> Alerts => Set<Alert>();
         public DbSet<User> Users => Set<User>();
         public DbSet<Parking> Parkings => Set<Parking>();
+        public DbSet<BoxEvent> BoxEvents => Set<BoxEvent>();
 
         // SQLite speichert keine Zeitzone – beim Lesen alle DateTime-Werte als UTC markieren,
         // damit die API "...Z" ausgibt und das Frontend korrekt umrechnet
@@ -40,6 +41,9 @@ namespace bikestation.Data
             modelBuilder.Entity<Parking>().HasIndex(p => new { p.UserId, p.EndedAt });
 
             modelBuilder.Entity<Slot>().Ignore(s => s.LockOpen);
+            modelBuilder.Entity<BoxEvent>().Property(e => e.Type).HasConversion<string>();
+            modelBuilder.Entity<BoxEvent>().HasIndex(e => e.Timestamp);
+            modelBuilder.Entity<BoxEvent>().HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Parking>()
                 .HasOne(p => p.Slot)
