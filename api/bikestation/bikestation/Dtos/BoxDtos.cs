@@ -32,6 +32,7 @@ namespace bikestation.Dtos
         int Id,
         int SlotId,
         string SlotName,
+        string Location,
         string? Username,
         BoxEventType Type,
         bool LockOpen,

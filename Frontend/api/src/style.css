@@ -779,3 +779,26 @@ a.primary-button, a.secondary-button { text-decoration: none; }
 
 /* Alarm: kleiner Text-Knopf zum Freischalten des Tons */
 .link-button { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--red); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* Admin: Protokoll als Sätze */
+.log-filter { max-width: 320px; margin: 10px 0 4px; }
+
+.event-log { display: flex; flex-direction: column; margin: 12px 0 0; padding: 0; list-style: none; }
+
+.event-log li { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 4px 16px; align-items: start; padding: 11px 0; border-top: 1px solid var(--line-soft); }
+
+.event-log li.is-alarm { margin: 0 -12px; padding: 11px 12px; border-radius: 6px; background: var(--warning-bg); }
+
+.event-log li.is-alarm .event-text { color: var(--red); font-weight: 700; }
+
+.event-log time { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; line-height: 1.35; }
+
+.event-text { color: var(--ink); font-size: 15px; line-height: 1.4; }
+
+.event-lock { color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+
+.event-lock.is-open { color: var(--ink); }
+
+@media (max-width: 640px) {
+  .event-log li { grid-template-columns: 1fr; }
+}

@@ -102,10 +102,10 @@ namespace bikestation.Controllers
             var events = await query
                 .OrderByDescending(e => e.Timestamp).ThenByDescending(e => e.Id)
                 .Take(limit)
-                .Select(e => new { e.Id, e.SlotId, SlotName = e.Slot!.Name, Username = e.User == null ? null : e.User.Username, e.Type, e.Timestamp })
+                .Select(e => new { e.Id, e.SlotId, SlotName = e.Slot!.Name, e.Slot.Location, Username = e.User == null ? null : e.User.Username, e.Type, e.Timestamp })
                 .ToListAsync();
             return events.Select(e => new BoxEventDto(
-                e.Id, e.SlotId, e.SlotName, e.Username, e.Type, BoxEvent.OpensLock(e.Type), e.Timestamp)).ToList();
+                e.Id, e.SlotId, e.SlotName, e.Location, e.Username, e.Type, BoxEvent.OpensLock(e.Type), e.Timestamp)).ToList();
         }
 
         private async Task<IActionResult> Run(Func<int, Task<BoxActionResult>> action)

@@ -149,6 +149,7 @@ export type BoxEvent = {
   id: number
   slotId: number
   slotName: string
+  location: string
   username: string | null
   type: BoxEventType
   lockOpen: boolean

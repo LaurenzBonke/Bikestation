@@ -184,53 +184,55 @@ function BoxLog({ auth }: { auth: Auth }) {
     }
   }, [token, auth])
 
-  const format = new Intl.DateTimeFormat(locale, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  const [filter, setFilter] = useState('')
+  const dateFormat = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeFormat = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const query = filter.trim().toLowerCase()
+  const shown = (events ?? []).filter((e) => !query || (e.username ?? '').toLowerCase().includes(query))
+
+  // Ein Satz pro Ereignis, z. B. "anna hat Stellplatz 1 (Hackathon Halle) am 29.09.2026 um 10:41:07 gebucht."
+  function sentence(e: BoxEvent): string {
+    const when = new Date(e.timestamp)
+    const slot = e.location ? `${slotName(t, e.slotId)} (${e.location})` : slotName(t, e.slotId)
+    return t(`log.${e.type}`, {
+      user: e.username ?? t('log.unknownUser'),
+      slot,
+      date: dateFormat.format(when),
+      time: timeFormat.format(when),
+    })
+  }
 
   return (
     <section className="admin-panel admin-section" aria-labelledby="log-heading">
       <p className="section-kicker">{t('admin.logKicker')}</p>
       <h2 id="log-heading">{t('admin.logHeading')}</h2>
       <p className="chart-note">{t('admin.logText')}</p>
+      <label className="form-field log-filter">
+        <span>{t('admin.logFilter')}</span>
+        <input type="search" value={filter} onChange={(event) => setFilter(event.target.value)} autoComplete="off" />
+      </label>
       {failed && (
         <p className="form-error" role="alert">
           {t('error.generic')}
         </p>
       )}
-      {events && events.length === 0 && <p className="alerts-empty">{t('admin.logEmpty')}</p>}
-      {events && events.length > 0 && (
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th scope="col">{t('admin.logTime')}</th>
-                <th scope="col">{t('admin.logBox')}</th>
-                <th scope="col">{t('admin.logUser')}</th>
-                <th scope="col">{t('admin.logEvent')}</th>
-                <th scope="col">{t('admin.logLock')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((e) => (
-                <tr key={e.id}>
-                  <td>
-                    <time dateTime={e.timestamp}>{format.format(new Date(e.timestamp))}</time>
-                  </td>
-                  <td>{slotName(t, e.slotId)}</td>
-                  <td>{e.username ?? '–'}</td>
-                  <td>{t(`event.${e.type}`)}</td>
-                  <td>{e.lockOpen ? t('admin.lockOpen') : t('admin.lockClosed')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {events && shown.length === 0 && <p className="alerts-empty">{t('admin.logEmpty')}</p>}
+      {shown.length > 0 && (
+        <ol className="event-log">
+          {shown.map((e) => (
+            <li key={e.id} className={e.type === 'BikeRemoved' ? 'is-alarm' : undefined}>
+              <time dateTime={e.timestamp}>
+                {dateFormat.format(new Date(e.timestamp))}
+                <br />
+                {timeFormat.format(new Date(e.timestamp))}
+              </time>
+              <span className="event-text">{sentence(e)}</span>
+              <span className={`event-lock ${e.lockOpen ? 'is-open' : ''}`}>
+                {e.lockOpen ? t('admin.lockOpen') : t('admin.lockClosed')}
+              </span>
+            </li>
+          ))}
+        </ol>
       )}
     </section>
   )
@@ -376,6 +378,10 @@ function AdminArea({ auth, data }: AdminPageProps) {
         </div>
       </section>
 
+      <Occupancy auth={auth} />
+
+      <BoxLog auth={auth} />
+
       <section className="admin-panel admin-section" aria-labelledby="admin-alerts-heading">
         <p className="section-kicker">{t('alerts.kicker')}</p>
         <h2 id="admin-alerts-heading">{t('admin.alertsHeading', { count: data.alerts.length })}</h2>
@@ -420,11 +426,7 @@ function AdminArea({ auth, data }: AdminPageProps) {
         )}
       </section>
 
-      <Occupancy auth={auth} />
-
       <BlockedBoxes auth={auth} />
-
-      <BoxLog auth={auth} />
 
       <section className="admin-panel admin-section" aria-labelledby="demo-heading">
         <p className="section-kicker">{t('admin.demoKicker')}</p>
