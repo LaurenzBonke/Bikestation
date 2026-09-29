@@ -68,23 +68,23 @@ class GroveUltrasonic:
 
 
 class HcSr04Ultrasonic:
-    """Klassischer Ultraschallsensor mit getrennten Trig- und Echo-Pins (Echo über Spannungsteiler auf 3,3 V!)."""
+    """Ultraschallsensor mit getrennten Trig- und Echo-Pins – genau wie in parking_sensor.py über gpiozero.
 
-    def __init__(self, trigger_pin: int, echo_pin: int, timeout_s: float = 0.04):
-        import lgpio
-        self._lgpio = lgpio
-        self._h = gpio_chip()
-        self._trig, self._echo = trigger_pin, echo_pin
-        self._timeout = timeout_s
-        lgpio.gpio_claim_output(self._h, self._trig, 0)
-        lgpio.gpio_claim_input(self._h, self._echo)
+    gpiozero misst im Hintergrund fortlaufend und mittelt; das ist stabiler als Einzelmessungen
+    (die kamen bei diesem Sensor jedes zweite Mal ohne Echo zurück)."""
+
+    def __init__(self, trigger_pin: int, echo_pin: int, max_distance_m: float = 1.0):
+        from gpiozero import DistanceSensor
+        from gpiozero.pins.lgpio import LGPIOFactory
+        self._sensor = DistanceSensor(echo=echo_pin, trigger=trigger_pin, max_distance=max_distance_m,
+                                      pin_factory=LGPIOFactory())
+        self._max_cm = int(max_distance_m * 100)
+        time.sleep(0.5)  # erste Messungen abwarten
 
     def read_cm(self) -> int:
-        lg, h = self._lgpio, self._h
-        lg.gpio_write(h, self._trig, 1)
-        _busy_wait_us(10)
-        lg.gpio_write(h, self._trig, 0)
-        return _measure_echo(lambda: lg.gpio_read(h, self._echo), self._timeout)
+        cm = int(round(self._sensor.distance * 100))
+        # gpiozero liefert bei "nichts in Reichweite" max_distance
+        return NO_ECHO_CM if cm >= self._max_cm else cm
 
 
 def _busy_wait_us(us: float) -> None:
@@ -121,27 +121,27 @@ def median_distance(sensor, samples: int = 3, pause_s: float = 0.02) -> int:
 # ---------------------------------------------------------------- Servo-Riegel
 
 class ServoLock:
-    """Servo als Riegel. Nach jeder Bewegung wird das PWM-Signal abgeschaltet (kein Zittern, weniger Strom)."""
+    """Servo als Riegel – wie in parking_sensor.py: gpiozero AngularServo, 0,5–2,5 ms Pulsbreite.
+    Nach jeder Bewegung wird das Signal abgeschaltet (kein Zittern, weniger Strom)."""
 
     def __init__(self, pin: int, open_angle: float, closed_angle: float, move_time_s: float = 0.6):
-        import lgpio
-        self._lgpio = lgpio
-        self._h = gpio_chip()
-        self._pin = pin
+        from gpiozero import AngularServo
+        from gpiozero.pins.lgpio import LGPIOFactory
+        self._servo = AngularServo(pin, min_angle=0, max_angle=180,
+                                   min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000,
+                                   pin_factory=LGPIOFactory())
+        self._servo.detach()
         self._open_angle, self._closed_angle = open_angle, closed_angle
         self._move_time = move_time_s
         self.is_open: bool | None = None  # unbekannt bis zum ersten Befehl
-        lgpio.gpio_claim_output(self._h, pin, 0)
 
     def set_open(self, open_: bool) -> bool:
         """Stellt den Riegel. Gibt True zurück, wenn sich etwas bewegt hat."""
         if self.is_open == open_:
             return False
-        angle = self._open_angle if open_ else self._closed_angle
-        pulse_us = 500 + (angle / 180.0) * 2000  # 0° = 0,5 ms, 180° = 2,5 ms
-        self._lgpio.tx_servo(self._h, self._pin, int(pulse_us))
+        self._servo.angle = self._open_angle if open_ else self._closed_angle
         time.sleep(self._move_time)
-        self._lgpio.tx_servo(self._h, self._pin, 0)  # Signal aus
+        self._servo.detach()
         self.is_open = open_
         return True
 

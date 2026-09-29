@@ -1,4 +1,5 @@
 using bikestation.Dtos;
+using bikestation.Security;
 using bikestation.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,9 @@ namespace bikestation.Controllers
     public class AlertsController(AlertService alertService) : ControllerBase
     {
         // Standard: nur offene Alerts. ?includeResolved=true zeigt auch erledigte.
+        // Nur für Admins und Geräte/KI-Dienst – normale Nutzer sehen nur ihre eigenen Meldungen (/api/me).
         [HttpGet]
+        [RequireApiKey(OrAdmin = true)]
         public async Task<ActionResult<List<AlertDto>>> Get(
             [FromQuery] int? slotId,
             [FromQuery] bool includeResolved = false,

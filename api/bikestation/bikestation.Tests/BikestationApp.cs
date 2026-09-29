@@ -36,6 +36,7 @@ namespace bikestation.Tests
             builder.UseSetting("Jwt:Key", "test-jwt-schluessel-mindestens-32-zeichen-lang");
             // Hintergrund-Erkennung standardmäßig aus, damit Tests reproduzierbar bleiben
             builder.UseSetting("Anomaly:Enabled", "false");
+            builder.UseSetting("Box:StationCount", "3");  // Tests arbeiten mit 3 Boxen
             foreach (var (key, value) in _settings)
             {
                 builder.UseSetting(key, value);

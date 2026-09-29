@@ -110,7 +110,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Legt die SQLite-Datei samt Tabellen und den 3 Slots an und erkennt veraltete Datenbanken
+// Legt die SQLite-Datei samt Tabellen und den Boxen (Box:StationCount) an und erkennt veraltete Datenbanken
 DatabaseInitializer.Initialize(app);
 
 // Admin anlegen statt Server starten: dotnet run -- create-admin <benutzername>

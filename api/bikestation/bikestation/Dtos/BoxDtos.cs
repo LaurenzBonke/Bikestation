@@ -13,6 +13,16 @@ namespace bikestation.Dtos
         bool IsMine,
         DateTime? StateChangedAt);
 
+    // Eintrag im Box-Protokoll (nur für Admins)
+    public record BoxEventDto(
+        int Id,
+        int SlotId,
+        string SlotName,
+        string? Username,
+        BoxEventType Type,
+        bool LockOpen,
+        DateTime Timestamp);
+
     // Laufender Parkvorgang des angemeldeten Nutzers
     public record MyParkingDto(
         int ParkingId,

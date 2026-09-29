@@ -12,6 +12,23 @@ namespace bikestation.Tests
         public void Dispose() => _app.Dispose();
 
         [Fact]
+        public async Task Meldungen_sehen_nur_Admins_und_Geraete()
+        {
+            var anonymous = _app.CreateClient();
+            Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/alerts")).StatusCode);
+
+            var user = _app.CreateClient();
+            var register = await user.PostAsJsonAsync("/api/auth/register", new { username = "anna", password = "sicheres-passwort" });
+            var token = (await register.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString();
+            user.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await user.GetAsync("/api/alerts")).StatusCode);
+
+            var admin = await _app.AdminClientAsync();
+            Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/alerts")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await _app.DeviceClient().GetAsync("/api/alerts")).StatusCode);
+        }
+
+        [Fact]
         public async Task Login_mit_falschem_Passwort_liefert_401()
         {
             await _app.AdminClientAsync();

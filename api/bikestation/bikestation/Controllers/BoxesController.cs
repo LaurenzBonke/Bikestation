@@ -58,7 +58,24 @@ namespace bikestation.Controllers
         // Nach einem Alarm gesperrte Box nach Kontrolle wieder freigeben
         [HttpPost("{id:int}/release")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Release(int id) => ToResponse(await boxService.ReleaseAsync(id));
+        public async Task<IActionResult> Release(int id) => ToResponse(await boxService.ReleaseAsync(id, User.UserId()));
+
+        // Protokoll: wer hat wann welche Box gebucht, geöffnet, geschlossen – neueste zuerst
+        [HttpGet("events")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<List<BoxEventDto>>> Events([FromQuery] int limit = 200, [FromQuery] int? slotId = null)
+        {
+            limit = Math.Clamp(limit, 1, 1000);
+            var query = db.BoxEvents.AsNoTracking();
+            if (slotId is int sid) query = query.Where(e => e.SlotId == sid);
+            var events = await query
+                .OrderByDescending(e => e.Timestamp).ThenByDescending(e => e.Id)
+                .Take(limit)
+                .Select(e => new { e.Id, e.SlotId, SlotName = e.Slot!.Name, Username = e.User == null ? null : e.User.Username, e.Type, e.Timestamp })
+                .ToListAsync();
+            return events.Select(e => new BoxEventDto(
+                e.Id, e.SlotId, e.SlotName, e.Username, e.Type, BoxEvent.OpensLock(e.Type), e.Timestamp)).ToList();
+        }
 
         private async Task<IActionResult> Run(Func<int, Task<BoxActionResult>> action)
         {
