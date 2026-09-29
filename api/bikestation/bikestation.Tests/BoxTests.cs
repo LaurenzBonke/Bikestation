@@ -220,6 +220,27 @@ namespace bikestation.Tests
         }
 
         [Fact]
+        public async Task Admin_sieht_welcher_Nutzer_an_welcher_Box_ist()
+        {
+            var user = await RegisterAsync(_app, "anna");
+            var device = _app.DeviceClient();
+            await Reading(device, 1, Far);
+            await user.PostAsync("/api/boxes/1/book", null);
+            await Reading(device, 1, Near);
+
+            var admin = await _app.AdminClientAsync();
+            var boxes = (await admin.GetFromJsonAsync<JsonElement[]>("/api/boxes/occupancy"))!;
+            var box1 = boxes.Single(b => b.GetProperty("id").GetInt32() == 1);
+            Assert.Equal("anna", box1.GetProperty("username").GetString());
+            Assert.Equal("Locked", box1.GetProperty("state").GetString());
+            Assert.NotEqual(JsonValueKind.Null, box1.GetProperty("parkedAt").ValueKind);
+            Assert.Equal(JsonValueKind.Null, boxes.Single(b => b.GetProperty("id").GetInt32() == 2).GetProperty("username").ValueKind);
+
+            // Normale Nutzer sehen keine fremden Namen
+            Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/boxes/occupancy")).StatusCode);
+        }
+
+        [Fact]
         public async Task Fremde_Meldung_kann_nicht_bestaetigt_werden()
         {
             var anna = await RegisterAsync(_app, "anna");

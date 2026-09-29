@@ -121,6 +121,19 @@ export type MyParking = {
   deadlineAt: string | null
 }
 
+export type BoxOccupancy = {
+  id: number
+  name: string
+  location: string
+  state: BoxState
+  lockOpen: boolean
+  isOnline: boolean
+  username: string | null
+  bookedAt: string | null
+  parkedAt: string | null
+  stateChangedAt: string | null
+}
+
 export type BoxEventType =
   | 'Booked'
   | 'Cancelled'
@@ -214,6 +227,8 @@ export const api = {
   cancelBox: (id: number, token: string) => request<void>(`/boxes/${id}/cancel`, { method: 'POST' }, token),
   pickupBox: (id: number, token: string) => request<void>(`/boxes/${id}/pickup`, { method: 'POST' }, token),
   releaseBox: (id: number, token: string) => request<void>(`/boxes/${id}/release`, { method: 'POST' }, token),
+  getBoxOccupancy: (token: string, signal?: AbortSignal) =>
+    request<BoxOccupancy[]>('/boxes/occupancy', { signal }, token),
   getBoxEvents: (token: string, limit = 200, signal?: AbortSignal) =>
     request<BoxEvent[]>(`/boxes/events?limit=${limit}`, { signal }, token),
   resolveAlert: (id: number, token: string) => request<void>(`/alerts/${id}/resolve`, { method: 'POST' }, token),

@@ -14,6 +14,19 @@ namespace bikestation.Dtos
         bool IsMine,
         DateTime? StateChangedAt);
 
+    // Aktuelle Belegung einer Box mit Nutzer (nur für Admins)
+    public record BoxOccupancyDto(
+        int Id,
+        string Name,
+        string Location,
+        BoxState State,
+        bool LockOpen,
+        bool IsOnline,
+        string? Username,
+        DateTime? BookedAt,
+        DateTime? ParkedAt,
+        DateTime? StateChangedAt);
+
     // Eintrag im Box-Protokoll (nur für Admins)
     public record BoxEventDto(
         int Id,

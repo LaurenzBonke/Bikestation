@@ -61,6 +61,36 @@ namespace bikestation.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Release(int id) => ToResponse(await boxService.ReleaseAsync(id, User.UserId()));
 
+        // Belegung: welcher Nutzer ist gerade an welcher Box (nur Admins)
+        [HttpGet("occupancy")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<List<BoxOccupancyDto>>> Occupancy()
+        {
+            var onlineSince = DateTime.UtcNow.AddSeconds(-deviceOptions.Value.OfflineAfterSeconds);
+            var slots = await db.Slots.AsNoTracking().OrderBy(s => s.Id).ToListAsync();
+            var parkingIds = slots.Where(s => s.ActiveParkingId != null).Select(s => s.ActiveParkingId!.Value).ToList();
+            var parkings = await db.Parkings.AsNoTracking()
+                .Where(p => parkingIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.User!.Username, p.BookedAt, p.ParkedAt })
+                .ToDictionaryAsync(p => p.Id);
+
+            return slots.Select(s =>
+            {
+                var parking = s.ActiveParkingId is int id && parkings.TryGetValue(id, out var p) ? p : null;
+                return new BoxOccupancyDto(
+                    s.Id,
+                    s.Name,
+                    s.Location,
+                    s.BoxState,
+                    s.LockOpen,
+                    s.LastUpdated != null && s.LastUpdated >= onlineSince,
+                    parking?.Username,
+                    parking?.BookedAt,
+                    parking?.ParkedAt,
+                    s.BoxStateChangedAt);
+            }).ToList();
+        }
+
         // Protokoll: wer hat wann welche Box gebucht, geöffnet, geschlossen – neueste zuerst
         [HttpGet("events")]
         [Authorize(Roles = "Admin")]

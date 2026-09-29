@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { ApiError, api, type Alert, type BoxEvent } from '../api'
+import { ApiError, api, type Alert, type BoxEvent, type BoxOccupancy } from '../api'
+import { PinIcon } from './Dashboard'
 import type { Auth } from '../useAuth'
 import type { StationData } from '../useStationData'
 import { formatDateTime, formatNumber, formatTime } from '../format'
@@ -71,6 +72,83 @@ function BlockedBoxes({ auth }: { auth: Auth }) {
                   {t('admin.release')}
                 </button>
               </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+// Belegung: welcher Nutzer ist gerade an welcher Box
+function Occupancy({ auth }: { auth: Auth }) {
+  const { t, locale } = useI18n()
+  const token = auth.session!.token
+  const [boxes, setBoxes] = useState<BoxOccupancy[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    async function load() {
+      try {
+        setBoxes(await api.getBoxOccupancy(token, controller.signal))
+        setFailed(false)
+      } catch (err) {
+        if (controller.signal.aborted) return
+        if (err instanceof ApiError && err.status === 401) auth.logout('login.expired')
+        else setFailed(true)
+      }
+    }
+    load()
+    const timer = window.setInterval(load, 5000)
+    return () => {
+      controller.abort()
+      window.clearInterval(timer)
+    }
+  }, [token, auth])
+
+  return (
+    <section className="admin-panel admin-section" aria-labelledby="occupancy-heading">
+      <p className="section-kicker">{t('admin.occKicker')}</p>
+      <h2 id="occupancy-heading">{t('admin.occHeading')}</h2>
+      {failed && (
+        <p className="form-error" role="alert">
+          {t('error.generic')}
+        </p>
+      )}
+      {boxes && (
+        <ul className="occupancy-list">
+          {boxes.map((box) => (
+            <li key={box.id} className={`occupancy-item ${box.state === 'Blocked' ? 'is-blocked' : ''}`}>
+              <div className="occupancy-box">
+                <strong>{slotName(t, box.id)}</strong>
+                {box.location && (
+                  <span className="spot-location">
+                    <PinIcon /> {box.location}
+                  </span>
+                )}
+              </div>
+              <div className="occupancy-user">
+                {box.username ? (
+                  <>
+                    <span>{t('admin.occBy', { user: box.username })}</span>
+                    <span className="occupancy-since">
+                      {box.parkedAt
+                        ? t('admin.occParkedSince', { time: formatDateTime(box.parkedAt, locale) })
+                        : box.bookedAt && t('admin.occBookedSince', { time: formatDateTime(box.bookedAt, locale) })}
+                    </span>
+                  </>
+                ) : (
+                  <span className="occupancy-free">{box.state === 'Blocked' ? t('admin.occBlocked') : t('admin.occFree')}</span>
+                )}
+              </div>
+              <div className="occupancy-state">
+                <span>{t(`state.${box.state}`)}</span>
+                <span className="occupancy-since">
+                  {box.lockOpen ? t('admin.lockOpen') : t('admin.lockClosed')}
+                  {!box.isOnline && ` · ${t('status.offline')}`}
+                </span>
+              </div>
             </li>
           ))}
         </ul>
@@ -341,6 +419,8 @@ function AdminArea({ auth, data }: AdminPageProps) {
           </ul>
         )}
       </section>
+
+      <Occupancy auth={auth} />
 
       <BlockedBoxes auth={auth} />
 

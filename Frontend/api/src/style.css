@@ -752,3 +752,30 @@ a.primary-button, a.secondary-button { text-decoration: none; }
 .box-card.is-selected { border: 2px solid var(--ink); box-shadow: 0 0 0 4px var(--surface-2); }
 
 .box-card h3:focus { outline: none; }
+
+/* Admin: Belegung je Box */
+.occupancy-list { display: flex; flex-direction: column; margin: 12px 0 0; padding: 0; list-style: none; }
+
+.occupancy-item { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(160px, 1.3fr) minmax(120px, auto); gap: 6px 16px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line-soft); }
+
+.occupancy-item.is-blocked { margin: 0 -12px; padding: 12px; border-radius: 6px; background: var(--warning-bg); }
+
+.occupancy-box, .occupancy-user, .occupancy-state { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+.occupancy-box strong { color: var(--ink); font-size: 15px; }
+
+.occupancy-user { color: var(--ink); font-weight: 600; }
+
+.occupancy-free { color: var(--muted); font-weight: 500; }
+
+.occupancy-state { color: var(--text); font-size: 14px; text-align: right; }
+
+.occupancy-since { color: var(--muted); font-size: 13px; font-weight: 500; }
+
+@media (max-width: 640px) {
+  .occupancy-item { grid-template-columns: 1fr; }
+  .occupancy-state { text-align: left; }
+}
+
+/* Alarm: kleiner Text-Knopf zum Freischalten des Tons */
+.link-button { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--red); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
