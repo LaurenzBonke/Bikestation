@@ -228,6 +228,11 @@ export const api = {
   cancelBox: (id: number, token: string) => request<void>(`/boxes/${id}/cancel`, { method: 'POST' }, token),
   pickupBox: (id: number, token: string) => request<void>(`/boxes/${id}/pickup`, { method: 'POST' }, token),
   releaseBox: (id: number, token: string) => request<void>(`/boxes/${id}/release`, { method: 'POST' }, token),
+  addStation: (location: string, token: string) =>
+    request<{ id: number }>('/boxes', { method: 'POST', body: JSON.stringify({ location }) }, token),
+  updateStation: (id: number, location: string, token: string) =>
+    request<void>(`/boxes/${id}`, { method: 'PUT', body: JSON.stringify({ location }) }, token),
+  deleteStation: (id: number, token: string) => request<void>(`/boxes/${id}`, { method: 'DELETE' }, token),
   getBoxOccupancy: (token: string, signal?: AbortSignal) =>
     request<BoxOccupancy[]>('/boxes/occupancy', { signal }, token),
   getBoxEvents: (token: string, limit = 200, signal?: AbortSignal) =>

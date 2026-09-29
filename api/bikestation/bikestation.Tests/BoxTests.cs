@@ -241,6 +241,38 @@ namespace bikestation.Tests
         }
 
         [Fact]
+        public async Task Admin_kann_Stationen_anlegen_aendern_und_loeschen()
+        {
+            var admin = await _app.AdminClientAsync();
+            var created = await admin.PostAsJsonAsync("/api/boxes", new { location = "Fahrradkeller" });
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+            Assert.Equal(4, id);  // nächste freie Nummer nach den 3 Test-Boxen
+
+            Assert.Equal(HttpStatusCode.NoContent, (await admin.PutAsJsonAsync($"/api/boxes/{id}", new { location = "Mensa" })).StatusCode);
+            Assert.Equal("Mensa", (await Box(admin, id)).GetProperty("location").GetString());
+
+            // Leerer Ort wird abgelehnt
+            Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/boxes", new { location = "" })).StatusCode);
+
+            // Belegte Station kann nicht gelöscht werden
+            var user = await RegisterAsync(_app, "anna");
+            var device = _app.DeviceClient();
+            await Reading(device, id, Far);
+            await user.PostAsync($"/api/boxes/{id}/book", null);
+            Assert.Equal(HttpStatusCode.Conflict, (await admin.DeleteAsync($"/api/boxes/{id}")).StatusCode);
+            await user.PostAsync($"/api/boxes/{id}/cancel", null);
+
+            Assert.Equal(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/boxes/{id}")).StatusCode);
+            var boxes = (await admin.GetFromJsonAsync<JsonElement[]>("/api/boxes"))!;
+            Assert.DoesNotContain(boxes, b => b.GetProperty("id").GetInt32() == id);
+
+            // Nur Admins
+            Assert.Equal(HttpStatusCode.Forbidden, (await user.PostAsJsonAsync("/api/boxes", new { location = "X" })).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await user.DeleteAsync("/api/boxes/1")).StatusCode);
+        }
+
+        [Fact]
         public async Task Fremde_Meldung_kann_nicht_bestaetigt_werden()
         {
             var anna = await RegisterAsync(_app, "anna");

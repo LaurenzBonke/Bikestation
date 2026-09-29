@@ -91,6 +91,30 @@ namespace bikestation.Controllers
             }).ToList();
         }
 
+        // Neue Station anlegen – bekommt die nächste freie Nummer (slotId für die Hardware)
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddStation(StationRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Location)) return ValidationProblem();
+            var slot = await boxService.AddStationAsync(request.Location);
+            return Created($"/api/boxes/{slot.Id}", new { slot.Id, slot.Name, slot.Location });
+        }
+
+        // Ort einer Station ändern
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateStation(int id, StationRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Location)) return ValidationProblem();
+            return ToResponse(await boxService.UpdateStationAsync(id, request.Location));
+        }
+
+        // Station löschen – nur wenn sie frei ist (kein Fahrrad, keine Buchung)
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteStation(int id) => ToResponse(await boxService.DeleteStationAsync(id));
+
         // Protokoll: wer hat wann welche Box gebucht, geöffnet, geschlossen – neueste zuerst
         [HttpGet("events")]
         [Authorize(Roles = "Admin")]

@@ -42,7 +42,7 @@ namespace bikestation.Data
             }
 
             var boxOptions = scope.ServiceProvider.GetRequiredService<IOptions<BoxOptions>>().Value;
-            SyncStations(db, Math.Max(1, boxOptions.StationCount), logger, boxOptions.Locations);
+            SeedStations(db, Math.Max(1, boxOptions.StationCount), logger, boxOptions.Locations);
             BackfillBoxEvents(db, logger);
         }
 
@@ -72,34 +72,25 @@ namespace bikestation.Data
             logger.LogInformation("Box-Protokoll aus {Count} gespeicherten Ereignissen nachgetragen", count);
         }
 
-        // Legt die Boxen 1..N an und entfernt Boxen darüber (samt Messwerten, Meldungen und Parkvorgängen)
-        public static void SyncStations(BikestationDbContext db, int count, ILogger logger, string[]? locations = null)
+        // Stationen verwalten Admins in der App (hinzufügen/löschen). Die Konfiguration legt nur beim allerersten
+        // Start die Boxen 1..N an und trägt fehlende Orte nach – bestehende Stationen werden nie gelöscht.
+        public static void SeedStations(BikestationDbContext db, int count, ILogger logger, string[]? locations = null)
         {
-            var existing = db.Slots.Select(s => s.Id).ToHashSet();
-            for (var id = 1; id <= count; id++)
+            if (!db.Slots.Any())
             {
-                if (!existing.Contains(id)) db.Slots.Add(new Slot { Id = id, Name = $"Stellplatz {id}" });
+                for (var id = 1; id <= count; id++) db.Slots.Add(new Slot { Id = id, Name = $"Stellplatz {id}" });
+                db.SaveChanges();
+                logger.LogInformation("{Count} Station(en) angelegt", count);
             }
-            db.SaveChanges();
 
-            // Orte aus der Konfiguration übernehmen (leere Einträge ändern nichts)
             if (locations is { Length: > 0 })
             {
-                foreach (var slot in db.Slots.Where(s => s.Id <= count).ToList())
+                foreach (var slot in db.Slots.Where(s => s.Location == "").ToList())
                 {
                     var location = slot.Id <= locations.Length ? locations[slot.Id - 1]?.Trim() : null;
-                    if (!string.IsNullOrEmpty(location) && slot.Location != location) slot.Location = location;
+                    if (!string.IsNullOrEmpty(location)) slot.Location = location;
                 }
                 db.SaveChanges();
-            }
-
-            if (existing.Any(id => id > count))
-            {
-                db.Alerts.Where(a => a.SlotId > count).ExecuteDelete();
-                db.SensorReadings.Where(r => r.SlotId > count).ExecuteDelete();
-                db.Parkings.Where(p => p.SlotId > count).ExecuteDelete();
-                var removed = db.Slots.Where(s => s.Id > count).ExecuteDelete();
-                logger.LogWarning("{Removed} Box(en) über Nummer {Count} entfernt (Box:StationCount = {Count})", removed, count, count);
             }
         }
 

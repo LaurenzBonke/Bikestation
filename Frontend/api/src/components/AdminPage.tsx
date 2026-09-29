@@ -80,6 +80,139 @@ function BlockedBoxes({ auth }: { auth: Auth }) {
   )
 }
 
+// Stationen hinzufügen, Ort ändern, löschen
+function Stations({ auth }: { auth: Auth }) {
+  const { t } = useI18n()
+  const token = auth.session!.token
+  const { boxes, refresh } = useBoxes(token)
+  const [newLocation, setNewLocation] = useState('')
+  const [editing, setEditing] = useState<{ id: number; location: string } | null>(null)
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function run(action: () => Promise<unknown>, success: string) {
+    setBusy(true)
+    setMessage('')
+    try {
+      await action()
+      setMessage(success)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) auth.logout('login.expired')
+      else if (err instanceof ApiError && err.status === 409) setMessage(t('stations.inUse'))
+      else setMessage(t('error.generic'))
+    } finally {
+      setBusy(false)
+      refresh()
+    }
+  }
+
+  async function add(event: FormEvent) {
+    event.preventDefault()
+    const location = newLocation.trim()
+    if (!location) return
+    await run(async () => {
+      const created = await api.addStation(location, token)
+      setNewLocation('')
+      return created
+    }, t('stations.added', { location }))
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    if (!editing || !editing.location.trim()) return
+    const { id, location } = editing
+    await run(() => api.updateStation(id, location.trim(), token), t('stations.saved', { slot: slotName(t, id) }))
+    setEditing(null)
+  }
+
+  async function remove(id: number, location: string) {
+    const label = location ? `${slotName(t, id)} (${location})` : slotName(t, id)
+    if (!window.confirm(t('stations.confirmDelete', { slot: label }))) return
+    await run(() => api.deleteStation(id, token), t('stations.deleted', { slot: label }))
+  }
+
+  return (
+    <section className="admin-panel admin-section" aria-labelledby="stations-heading">
+      <p className="section-kicker">{t('stations.kicker')}</p>
+      <h2 id="stations-heading">{t('stations.heading')}</h2>
+      <p className="chart-note">{t('stations.text')}</p>
+      <p className="save-message" role="status">
+        {message}
+      </p>
+      <ul className="station-list">
+        {boxes.map((box) => (
+          <li key={box.id} className="station-item">
+            {editing?.id === box.id ? (
+              <form className="station-edit" onSubmit={save}>
+                <label className="form-field">
+                  <span>{t('stations.locationFor', { slot: slotName(t, box.id) })}</span>
+                  <input
+                    value={editing.location}
+                    maxLength={80}
+                    required
+                    autoFocus
+                    onChange={(event) => setEditing({ id: box.id, location: event.target.value })}
+                  />
+                </label>
+                <button className="primary-button" type="submit" disabled={busy}>
+                  {t('stations.save')}
+                </button>
+                <button className="secondary-button" type="button" onClick={() => setEditing(null)}>
+                  {t('stations.cancel')}
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="occupancy-box">
+                  <strong>{slotName(t, box.id)}</strong>
+                  <span className="spot-location">
+                    <PinIcon /> {box.location || t('stations.noLocation')}
+                  </span>
+                </div>
+                <span className="occupancy-since">{t('stations.deviceId', { id: box.id })}</span>
+                <span className="station-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setEditing({ id: box.id, location: box.location })}
+                  >
+                    {t('stations.edit')}
+                  </button>
+                  <button
+                    className="secondary-button danger-button"
+                    type="button"
+                    disabled={busy || box.state !== 'Free'}
+                    title={box.state !== 'Free' ? t('stations.inUse') : undefined}
+                    onClick={() => remove(box.id, box.location)}
+                  >
+                    {t('stations.delete')}
+                  </button>
+                </span>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      <form className="station-add" onSubmit={add}>
+        <label className="form-field">
+          <span>{t('stations.newLocation')}</span>
+          <input
+            value={newLocation}
+            maxLength={80}
+            required
+            placeholder={t('stations.placeholder')}
+            onChange={(event) => setNewLocation(event.target.value)}
+          />
+        </label>
+        <button className="primary-button" type="submit" disabled={busy || !newLocation.trim()}>
+          {t('stations.add')} <span aria-hidden="true">+</span>
+        </button>
+      </form>
+    </section>
+  )
+}
+
 // Belegung: welcher Nutzer ist gerade an welcher Box
 function Occupancy({ auth }: { auth: Auth }) {
   const { t, locale } = useI18n()
@@ -203,12 +336,15 @@ function BoxLog({ auth }: { auth: Auth }) {
   }
 
   return (
-    <section className="admin-panel admin-section" aria-labelledby="log-heading">
-      <p className="section-kicker">{t('admin.logKicker')}</p>
-      <h2 id="log-heading">{t('admin.logHeading')}</h2>
+    <details className="admin-panel admin-section log-section">
+      <summary>
+        <span>
+          <span className="section-kicker">{t('admin.logKicker')}</span>
+          <span className="log-summary-title">{t('admin.logHeading')}</span>
+        </span>
+        <span className="log-summary-count">{t('admin.logCount', { count: events?.length ?? 0 })}</span>
+      </summary>
       <p className="chart-note">{t('admin.logText')}</p>
-      <details className="log-details">
-        <summary>{t('admin.logToggle', { count: events?.length ?? 0 })}</summary>
       <label className="form-field log-filter">
         <span>{t('admin.logFilter')}</span>
         <input type="search" value={filter} onChange={(event) => setFilter(event.target.value)} autoComplete="off" />
@@ -236,8 +372,7 @@ function BoxLog({ auth }: { auth: Auth }) {
           ))}
         </ol>
       )}
-      </details>
-    </section>
+    </details>
   )
 }
 
@@ -382,6 +517,8 @@ function AdminArea({ auth, data }: AdminPageProps) {
       </section>
 
       <Occupancy auth={auth} />
+
+      <Stations auth={auth} />
 
       <section className="admin-panel admin-section" aria-labelledby="admin-alerts-heading">
         <p className="section-kicker">{t('alerts.kicker')}</p>

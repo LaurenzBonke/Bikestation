@@ -14,6 +14,12 @@ namespace bikestation.Dtos
         bool IsMine,
         DateTime? StateChangedAt);
 
+    // Station anlegen oder Ort ändern (nur für Admins)
+    public record StationRequest(
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(80, MinimumLength = 1)]
+        string Location);
+
     // Aktuelle Belegung einer Box mit Nutzer (nur für Admins)
     public record BoxOccupancyDto(
         int Id,
