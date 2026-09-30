@@ -7,10 +7,17 @@
 
 A lockable bike parking station with a web app. You see which boxes are free, book one with a click, a servo
 latch opens, an ultrasonic sensor detects your bike and the box locks itself. To pick the bike up you open the
-box again from the app. If a bike disappears from a locked box without being opened, the owner gets an alarm
-and the box is blocked until an admin has checked it.
+box again from the app. If a bike disappears from a locked box without being opened, the owner gets an alarm on
+the phone, the red LED at the box starts blinking and the box stays blocked until an admin has checked it.
 
-No cameras, no personal data beyond a username and a password hash. German, English and Dutch, light and dark mode.
+**Features**
+
+- **Live overview** of free boxes with their location and a forecast for the next hours
+- **Book and open** a box with one click – the latch opens, the bike is detected, the box locks automatically
+- **Theft alarm** when a bike leaves a locked box: banner and sound in the app, blinking red LED at the station
+- **Admin area**: who is at which box, alerts, release blocked boxes, add or remove stations, full box log
+- **Statistics** (occupancy by hour and day) and a statistical anomaly detection in the backend
+- Web app in **German, English and Dutch**, light and dark mode, usable with keyboard and screen reader
 
 ![Booking a box, with the virtual station of the demo mode below](docs/screenshots/boxes.png)
 
@@ -19,8 +26,8 @@ No cameras, no personal data beyond a username and a password hash. German, Engl
 ## Try the demo
 
 No hardware needed – a **virtual station** replaces the Raspberry Pi. The server controls it exactly like the
-real one: it reports the ultrasonic distance every second and the server's answer moves the latch and switches
-the LED. You put the bike in or take it out with a button.
+real one: it reports the ultrasonic distance every second, and the server's answer moves the latch and switches
+the green LED. You put the bike in or take it out with a button.
 
 **With Docker** (nothing else to install):
 
@@ -67,17 +74,18 @@ statistics and forecast have something to show:
 
 ## What we built at the hackathon
 
-**Station:** one box model with a **Raspberry Pi 5**. All parts sit on a breadboard and are wired directly to the
-Pi's GPIO pins – no microcontroller in between.
+**Station:** one box model with a **Raspberry Pi 5**. Sensor, servo and LEDs sit on a breadboard and are wired
+directly to the Pi's GPIO pins – no microcontroller in between.
 
 | Part | GPIO | Role |
 |---|---|---|
 | HC-SR04 ultrasonic sensor | Trigger GPIO4, Echo GPIO14 (voltage divider) | detects the bike (≤ 7 cm) |
 | Servo | GPIO15 | latch: 90° open, 45° closed |
-| Green LED + 330 Ω | GPIO17 | on = free, off = bike locked in |
+| Green LED + 330 Ω | GPIO17 | on while no bike is locked in |
+| Red LED + 330 Ω | GPIO27 (pin 13) | on while a bike is locked in, **blinks** when a bike was removed without authorization |
 
-The program on the Pi is [`pi/parking_sensor.py`](pi/parking_sensor.py): every second it measures, sends the
-distance to the server and moves the latch the way the server's answer says. Details: [pi/README.md](pi/README.md).
+Every second the Pi measures the distance, sends it to the server and sets latch and LEDs the way the server's
+answer says – all decisions are made by the server. Station program: [`pi/`](pi/README.md).
 
 **Server:** ASP.NET Core API + React dashboard in one process on port 8080, running on a Windows PC in the
 hall's network. Phones and the Pi connected over the LAN. Details: [deploy/README.md](deploy/README.md).
@@ -93,7 +101,7 @@ hall's network. Phones and the Pi connected over the LAN. Details: [deploy/READM
  Station                                   Server                                      Browser
  ──────────────────────────                ───────────────────────────────────         ─────────────────
  Raspberry Pi 5 + breadboard               ASP.NET Core 10 API (C#)       :8080         React dashboard
- HC-SR04 · servo latch · LED       ──►     ├─ BoxService (state machine)        ◄──    (served by the API)
+ HC-SR04 · servo latch · 2 LEDs    ──►     ├─ BoxService (state machine)        ◄──    (served by the API)
  pi/parking_sensor.py         HTTP + key   ├─ SQLite database                   JWT
                                            ├─ background workers: timeouts,
    ◄── answer: {boxState, lockOpen} ──     │  anomaly detection, data retention
@@ -115,7 +123,8 @@ Free ──user books──► OpenForParking ──bike ≤ 7 cm for 5 s──�
 OpenForPickup ──120 s, bike still there──► Locked
 ```
 
-The latch is open only in `OpenForParking` and `OpenForPickup`. Every transition is written to the box log.
+The latch is open only in `OpenForParking` and `OpenForPickup`. At the station the green LED is on unless a bike
+is locked in; the red LED is on in `Locked` and blinks in `Blocked`. Every transition is written to the box log.
 Also included: statistics, occupancy forecast from the last 28 days, and a statistical anomaly detection
 (robust z-score) that runs inside the backend.
 
@@ -167,6 +176,6 @@ This is a hackathon prototype. What we would do next:
 
 - **HTTPS** (reverse proxy with a certificate) – also needed for push notifications when the phone is locked
 - More stations (school, train station, canteen) – each station reports its own number, the server does the rest
-- Red LED for blocked boxes, a pressure sensor as second detection (the Pi needs an ADC such as the ADS1115)
+- A pressure sensor as second detection (the Pi needs an ADC such as the ADS1115)
 - Keep the latch closed when the Pi loses the connection to the server (today it falls back to simple local logic)
 - Run the server on Linux instead of the Windows PC, EF Core migrations for a real database server
