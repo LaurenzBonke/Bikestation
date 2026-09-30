@@ -9,7 +9,7 @@ namespace bikestation.Controllers
     [Route("api/sensor-data")]
     public class SensorDataController(SensorDataService sensorDataService) : ControllerBase
     {
-        // Wird von den ESP32 aufgerufen (Header X-Api-Key nötig).
+        // Wird von der Station (Raspberry Pi) aufgerufen (Header X-Api-Key nötig).
         // Ungültige Payloads beantwortet [ApiController] automatisch mit 400.
         [HttpPost]
         [RequireApiKey]

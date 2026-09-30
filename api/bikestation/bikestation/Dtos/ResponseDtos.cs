@@ -27,7 +27,7 @@ namespace bikestation.Dtos
         bool Resolved,
         double? Score);
 
-    // Messwert mit Slot-ID, z. B. für den KI-Dienst
+    // Messwert mit Slot-ID, z. B. für externe Auswertungen
     public record SlotReadingDto(long Id, int SlotId, int Pressure, int Distance, bool Vibration, bool Occupied, DateTime Timestamp);
 
     // Antwort an das Gerät: enthält direkt, ob der Riegel offen sein soll

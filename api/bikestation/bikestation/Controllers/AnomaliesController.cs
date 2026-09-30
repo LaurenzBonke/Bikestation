@@ -9,7 +9,7 @@ namespace bikestation.Controllers
     [Route("api/anomalies")]
     public class AnomaliesController(AnomalyService anomalyService) : ControllerBase
     {
-        // Wird vom KI-Dienst aufgerufen, wenn er eine Anomalie erkannt hat (Header X-Api-Key nötig)
+        // Für externe Auswertungsdienste: wenn ein Dienst eine Anomalie erkannt hat (Header X-Api-Key nötig)
         [HttpPost]
         [RequireApiKey]
         [ProducesResponseType<AnomalyResponse>(StatusCodes.Status200OK)]

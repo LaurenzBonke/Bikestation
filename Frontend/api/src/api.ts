@@ -175,6 +175,22 @@ export type Me = {
   history: ParkingHistory[]
 }
 
+// Demo-Modus (Server mit ASPNETCORE_ENVIRONMENT=Demo): virtuelle Station und Demo-Konten
+export type DemoInfo = {
+  virtualStation: boolean
+  accounts: { username: string; password: string; role: UserRole }[]
+}
+
+// Eine Box der virtuellen Station – so, wie der Raspberry Pi sie mit Ultraschall, Servo und LED hätte
+export type VirtualBox = {
+  slotId: number
+  bikePresent: boolean
+  distanceCm: number
+  lockOpen: boolean
+  ledGreen: boolean
+  boxState: BoxState
+}
+
 // Fehler mit HTTP-Status, damit z. B. 401 (Token abgelaufen) gezielt behandelt werden kann
 export class ApiError extends Error {
   readonly status: number
@@ -240,4 +256,8 @@ export const api = {
   resolveAlert: (id: number, token: string) => request<void>(`/alerts/${id}/resolve`, { method: 'POST' }, token),
   generateDemoData: (days: number, token: string) =>
     request<{ readings: number }>(`/demo/generate?days=${days}`, { method: 'POST' }, token),
+  getDemoInfo: () => request<DemoInfo>('/demo'),
+  getVirtualStation: (signal?: AbortSignal) => request<VirtualBox[]>('/demo/station', { signal }),
+  setVirtualBike: (slotId: number, present: boolean) =>
+    request<void>(`/demo/station/${slotId}/bike`, { method: 'POST', body: JSON.stringify({ present }) }),
 }

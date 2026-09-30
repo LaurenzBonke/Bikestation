@@ -29,7 +29,7 @@ namespace bikestation.Services
                 .ToListAsync();
         }
 
-        // Messwerte aller Slots nach einer bestimmten ID (älteste zuerst) – für den KI-Dienst
+        // Messwerte aller Slots nach einer bestimmten ID (älteste zuerst) – für externe Auswertungen
         public async Task<List<SlotReadingDto>> GetReadingsAfterAsync(long afterId, int limit)
         {
             return await db.SensorReadings

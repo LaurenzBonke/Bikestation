@@ -4,30 +4,30 @@ Die Diagramme sind in Mermaid geschrieben und werden auf GitHub direkt als Grafi
 
 ## Idee
 
-Die Station hat abschließbare **Boxen** (Prototyp: 3). Nutzer legen ein Konto an, wählen im Web-Dashboard eine
+Die Station hat abschließbare **Boxen** (beim Hackathon: 1 Box als Modell, in der Demo: 3). Nutzer legen ein Konto an, wählen im Web-Dashboard eine
 freie Box und öffnen sie per Klick. Ein Servo-Riegel öffnet, das Fahrrad wird eingestellt, der Ultraschallsensor
 erkennt es, und die Box verriegelt automatisch. Zum Abholen öffnet der Nutzer die Box wieder per Klick. Wird ein
 Fahrrad entfernt, **ohne** dass die Box geöffnet wurde, bekommt der Nutzer sofort einen Alarm in der App.
 
-Das erfüllt die Grundaufgabe: freie Plätze erkennen und anzeigen, Manipulation erkennen (Vibration,
-KI-Anomalieerkennung, unerwartete Entnahme), Daten speichern und auswerten (Statistik, Prognose), keine
+Das erfüllt die Grundaufgabe: freie Plätze erkennen und anzeigen, Manipulation erkennen (unerwartete
+Entnahme, KI-Anomalieerkennung, optional Vibration), Daten speichern und auswerten (Statistik, Prognose), keine
 personenbezogenen Daten (Konto = nur Benutzername und Passwort-Hash), barrierearm, in 3 Sprachen.
 
 ## Systemübersicht
 
 ```mermaid
 flowchart LR
-    subgraph Box["Box 1–3"]
-        U[Ultraschall<br/>Grove V2.0] --> D
-        V[Vibration] --> D
-        D{{Raspberry Pi<br/>bikestation_agent.py<br/>oder ESP32}} --> S[Servo-Riegel]
-        D --> L[LED grün/rot]
+    subgraph Box["Box (Breadboard am Pi)"]
+        U[Ultraschall<br/>HC-SR04] --> D
+        D{{Raspberry Pi 5<br/>parking_sensor.py}} --> S[Servo-Riegel]
+        D --> L[LED grün]
     end
 
     D -- "HTTP POST /api/sensor-data<br/>X-Api-Key<br/>Antwort: boxState, lockOpen" --> API
 
-    subgraph Server["Server (Windows-PC, später Raspberry Pi / Proxmox)"]
+    subgraph Server["Server (beim Hackathon: Windows-PC · Demo: Docker)"]
         API[ASP.NET Core API<br/>Port 8080]
+        VS[Virtuelle Station<br/>nur im Demo-Modus] -. "statt Pi" .-> SM
         SM[Box-Zustandsmaschine<br/>BoxService + BoxWorker]
         AN[Anomalieerkennung<br/>Hintergrunddienst]
         DB[(SQLite)]
@@ -47,7 +47,7 @@ flowchart LR
 stateDiagram-v2
     [*] --> Free
     Free --> OpenForParking: Nutzer bucht (Riegel öffnet)
-    OpenForParking --> Locked: Fahrrad ≤ 5 cm, 5 s lang erkannt (Riegel schließt)
+    OpenForParking --> Locked: Fahrrad ≤ 7 cm, 5 s lang erkannt (Riegel schließt)
     OpenForParking --> Free: Abbrechen oder 2 min kein Fahrrad
     Locked --> OpenForPickup: Besitzer klickt "Abholen" (Riegel öffnet)
     OpenForPickup --> Free: Fahrrad 5 s weg (Riegel schließt)
@@ -134,7 +134,7 @@ sequenceDiagram
     actor N as Nutzer
     participant F as Dashboard
     participant A as API
-    participant P as Pi-Agent
+    participant P as Pi (parking_sensor.py)
     participant B as Box (Servo, Sensor)
 
     N->>F: "Box öffnen" (Box 2)
@@ -147,7 +147,7 @@ sequenceDiagram
     loop jede Sekunde
         P->>A: {distance: 3}
     end
-    A->>A: 5 s ≤ 5 cm → Locked
+    A->>A: 5 s ≤ 7 cm → Locked
     A-->>P: {lockOpen: false}
     P->>B: Servo schließen
     F->>A: GET /api/me (alle 2 s) → "Dein Fahrrad ist sicher verriegelt"
@@ -163,7 +163,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant P as Pi-Agent
+    participant P as Pi (parking_sensor.py)
     participant A as API
     participant F as Dashboard (Nutzer)
     participant AD as Admin
@@ -183,10 +183,9 @@ Mehrere Stufen, damit es nicht nur ein „wenn Vibration, dann Alarm“ ist:
 
 | Stufe | Wo | Wie |
 |---|---|---|
-| Regel | `SensorDataService` | Vibration → Meldung „Mögliche Manipulation“ (max. 1 pro Minute und Box), geht auch an den Besitzer |
+| Regel | `SensorDataService` | Vibration → Meldung „Mögliche Manipulation“ (max. 1 pro Minute und Box), geht auch an den Besitzer. Vibrationssensor vorgesehen, beim Hackathon nicht angeschlossen |
 | Zustand | `BoxService` | Fahrrad verschwindet aus verriegelter Box → Alarm „unerwartet entfernt“ |
-| Statistisch lernend | `AnomalyDetector` + `AnomalyDetectionWorker` | Lernt pro Box und Zustand Median und Streuung (MAD) von Druck, Abstand und deren Änderungen. Robuster Z-Score ≥ 6 → KI-Anomalie. Vibration allein reicht nicht. |
-| Maschinelles Lernen (optional) | `ai/anomaly_service.py` | Isolation Forest (scikit-learn), meldet über `POST /api/anomalies` |
+| Statistisch lernend | `AnomalyDetector` + `AnomalyDetectionWorker` | Lernt pro Box und Zustand Median und Streuung (MAD) von Abstand (und optional Druck) und deren Änderungen. Robuster Z-Score ≥ 6 → KI-Anomalie. Vibration allein reicht nicht. |
 
 ## Auslastungsprognose
 
@@ -199,12 +198,12 @@ Mehrere Stufen, damit es nicht nur ein „wenn Vibration, dann Alarm“ ist:
 | Maßnahme | Umsetzung |
 |---|---|
 | Geräte-Authentifizierung | API-Key im Header `X-Api-Key`, Vergleich in konstanter Zeit |
-| Nutzer-Authentifizierung | JWT (HMAC-SHA256, 60 min), Rollen `User` / `Admin` |
+| Nutzer-Authentifizierung | JWT (HMAC-SHA256, Nutzer 12 h, Admins 60 min), Rollen `User` / `Admin` |
 | Rechte | Nur der Besitzer öffnet seine Box; Admin-Funktionen nur mit Rolle `Admin`; max. 1 Box pro Nutzer |
 | Passwörter | nur PBKDF2-Hash, mind. 8 Zeichen; Admins nur per Kommandozeile |
 | Brute Force / Spam | Rate Limiting: 5 Logins pro Minute, 5 Registrierungen pro 10 Minuten und IP |
 | Eingabevalidierung | Wertebereiche für Sensorwerte, Benutzername nur `A–Z a–z 0–9 _ . -` |
-| Physische Sicherheit | Riegel folgt nur der API; ohne Verbindung bleibt er, wie er ist; unerwartete Entnahme → Alarm + Sperre |
+| Physische Sicherheit | Riegel folgt der API; unerwartete Entnahme → Alarm + Sperre. Ohne Serververbindung nutzt der Pi eine einfache lokale Notlogik (ohne Diebstahlschutz) |
 | Fehlerbehandlung | einheitliche ProblemDetails, keine Stacktraces nach außen |
 | HTTP-Header | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` |
 | Geheimnisse | nicht im Repo, zufällig erzeugt, per Umgebungsvariable |
@@ -214,11 +213,9 @@ Mehrere Stufen, damit es nicht nur ein „wenn Vibration, dann Alarm“ ist:
 
 | Bereich | Wo | Umfang |
 |---|---|---|
-| Backend | `api/bikestation/bikestation.Tests` | 56 Tests: Konten, Boxen-Ablauf, Alarm, Rechte, Zeitlimits, Offline, API-Key, Validierung, KI, Statistik, Prognose, Migration |
-| Pi-Agent | `pi/test_agent.py` | 7 Tests inkl. Ende-zu-Ende gegen das echte Backend (simulierter Servo) |
+| Backend | `api/bikestation/bikestation.Tests` | 67 Tests: Konten, Boxen-Ablauf, Alarm, Rechte, Zeitlimits, Offline, API-Key, Validierung, KI, Statistik, Prognose, Migration, Stationsverwaltung, Demo-Modus |
 | Server-Update | `deploy/update-server.ps1` | an separatem Test-Server geprüft (Update mit Datenerhalt, Abbruch bei kaputter Version) |
 
 ```powershell
 cd api/bikestation; dotnet test
-cd pi; python -m unittest test_agent.py -v
 ```

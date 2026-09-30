@@ -1,17 +1,19 @@
 # Smart Bikestation – Dashboard (React)
 
-React-Dashboard für die Smart Bikestation. Es zeigt die Live-Belegung der 3 Stellplätze,
-die aktuellen Sensorwerte, offene Meldungen (Vibration und KI-Anomalien), ob ein Sensor offline ist,
-und eine Statistik mit Auslastung nach Uhrzeit.
+Web-App der Smart Bikestation für Nutzer und Admins: freie Boxen sehen, Box buchen und öffnen, Fahrrad abholen,
+Alarm bei unerlaubter Entnahme, Statistik mit Prognose und ein Admin-Bereich mit Belegung, Meldungen,
+Stationsverwaltung und Box-Protokoll.
 
 Alle Daten kommen aus der C#-API (`api/bikestation`). Eine eigene Datenbank hat das Frontend nicht.
+Im Betrieb liefert die API das gebaute Dashboard selbst aus (`npm run build` → `wwwroot`).
 
 ## Starten (Entwicklung)
 
-1. Backend starten (Visual Studio oder im Ordner `api/bikestation/bikestation`):
+1. Backend starten (im Ordner `api/bikestation/bikestation`):
 
    ```powershell
-   dotnet run
+   dotnet run                          # normale Entwicklung
+   dotnet run --launch-profile demo    # mit virtueller Station, Demo-Konten und Beispieldaten
    ```
 
    Die API läuft dann auf `http://localhost:5137`.
@@ -23,48 +25,51 @@ Alle Daten kommen aus der C#-API (`api/bikestation`). Eine eigene Datenbank hat 
    npm run dev
    ```
 
-   Das Dashboard läuft auf `http://localhost:5173`. Der Vite-Dev-Server leitet alle Aufrufe
-   auf `/api` an das Backend weiter (siehe `vite.config.ts`).
-
-   Läuft die API woanders (z. B. auf dem Raspberry Pi), die Umgebungsvariable `API_URL` setzen:
+   Das Dashboard läuft auf `http://localhost:5173`. Der Vite-Dev-Server leitet alle Aufrufe auf `/api` an das
+   Backend weiter (siehe `vite.config.ts`). Läuft die API woanders, die Umgebungsvariable `API_URL` setzen:
 
    ```powershell
-   $env:API_URL = "http://192.168.0.50:5137"; npm run dev
+   $env:API_URL = "http://<server-ip>:8080"; npm run dev
    ```
 
-## Admin-Bereich
+## Seiten
 
-Unter `#admin` (Link „Admin“ oben) können angemeldete Admins Meldungen als erledigt markieren.
-Der Login liefert einen JWT, der 60 Minuten gilt und nur im `sessionStorage` des Tabs liegt.
-Einen Admin legt man im Backend an (siehe `api/bikestation/README.md`).
+| Hash | Seite |
+|---|---|
+| `#` | Übersicht: freie Stellplätze mit Ort, Klick führt zum Buchen |
+| `#boxen` | Box buchen, öffnen, abholen – im Demo-Modus zusätzlich die **virtuelle Station** |
+| `#konto` | Anmelden / registrieren – im Demo-Modus mit Demo-Zugängen |
+| `#statistik` | Auslastung nach Uhrzeit und Tag, Prognose der nächsten Stunden |
+| `#admin` | Belegung, Meldungen, gesperrte Boxen, Stationen verwalten, Box-Protokoll, Beispieldaten |
+
+Der Login liefert einen JWT (Nutzer 12 h, Admins 60 min), der nur im `sessionStorage` des Tabs liegt.
 
 ## Sprachen und Darstellung
 
 - **Sprachen:** Deutsch, Englisch, Niederländisch – Auswahl oben rechts, wird im Browser gespeichert.
   Beim ersten Besuch wird die Browsersprache verwendet. Alle Texte stehen in `src/i18n.tsx`;
   TypeScript prüft, dass jede Sprache dieselben Schlüssel hat.
-  Meldungen aus dem Backend (z. B. KI-Begründungen) werden im Frontend übersetzt (`src/slotStatus.ts`).
-- **Darstellung:** System / Hell / Dunkel. „System“ folgt der Geräteeinstellung.
-  Alle Farben sind CSS-Variablen in `src/style.css` mit einem eigenen, kontrastgeprüften Dunkel-Satz.
+- **Darstellung:** System / Hell / Dunkel. Alle Farben sind CSS-Variablen in `src/style.css`
+  mit einem eigenen, kontrastgeprüften Dunkel-Satz.
 
 ## Aufbau
 
 | Datei | Aufgabe |
 |---|---|
 | `src/api.ts` | Typen und Aufrufe der REST-API |
-| `src/useStationData.ts` | Holt Slots und Meldungen alle 3 Sekunden |
 | `src/components/Dashboard.tsx` | Übersicht: freie Plätze, Stationsgrafik |
-| `src/components/SlotList.tsx` | Liste der Stellplätze mit Sensorwerten |
-| `src/components/AlertsPanel.tsx` | Offene Meldungen |
-| `src/components/StatisticsPage.tsx` | Statistik: Auslastung nach Uhrzeit, je Platz, Ereignisse |
-| `src/components/AdminPage.tsx` | Admin-Login, Meldungen bearbeiten, Demo-Daten |
+| `src/components/BoxesPage.tsx` | Buchen, eigener Parkvorgang mit Schritten und Countdown, Verlauf |
+| `src/components/DemoStation.tsx` | Virtuelle Station im Demo-Modus: Riegel, LED, Ultraschall, Fahrrad rein/raus |
+| `src/components/AccountPage.tsx` | Anmelden, registrieren, Demo-Zugänge, Benachrichtigungen |
+| `src/components/AlarmBanner.tsx`, `src/useAlarmSound.ts` | Alarm bei unerlaubter Entnahme (Banner, Ton, Vibration) |
+| `src/components/StatisticsPage.tsx`, `ForecastPanel.tsx` | Statistik und Prognose |
+| `src/components/AdminPage.tsx` | Admin-Bereich |
 | `src/useAuth.ts` | Login, Token-Speicherung, automatisches Abmelden |
-| `src/i18n.tsx` | Übersetzungen (de/en/nl) und Sprachauswahl |
-| `src/useTheme.ts` | Hell-/Dunkelmodus |
+| `src/useDemo.ts` | Demo-Modus erkennen, virtuelle Station abfragen |
+| `src/i18n.tsx`, `src/useTheme.ts` | Übersetzungen (de/en/nl), Hell-/Dunkelmodus |
 
 ## Barrierefreiheit
 
-- Status wird immer auch als Text angezeigt („Stellplatz 1 – Frei“), nicht nur über Farbe
-- Textkontrast mindestens 4.5:1, Schriftgrößen ab 11 px
-- „Zum Inhalt springen“-Link und sichtbarer Tastaturfokus
-- Änderungen der freien Plätze werden Screenreadern angesagt (`aria-live`)
+- Status wird immer auch als Text angezeigt, nicht nur über Farbe
+- Textkontrast mindestens 4.5:1, sichtbarer Tastaturfokus, „Zum Inhalt springen“-Link
+- Änderungen werden Screenreadern angesagt (`aria-live`), Animationen respektieren „Bewegung reduzieren“

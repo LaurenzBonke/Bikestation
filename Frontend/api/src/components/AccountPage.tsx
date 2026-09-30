@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ApiError } from '../api'
+import { ApiError, type DemoInfo } from '../api'
 import type { Auth } from '../useAuth'
 import { useI18n, type TranslationKey } from '../i18n'
 import { notificationsSupported } from '../useAlarmSound'
@@ -8,7 +8,7 @@ type Mode = 'login' | 'register'
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_.-]{3,32}$/
 
-export default function AccountPage({ auth }: { auth: Auth }) {
+export default function AccountPage({ auth, demoAccounts }: { auth: Auth; demoAccounts: DemoInfo['accounts'] }) {
   const { t } = useI18n()
 
   if (auth.session) {
@@ -43,6 +43,7 @@ export default function AccountPage({ auth }: { auth: Auth }) {
         <p>{t('account.intro')}</p>
       </section>
       <AccountForm auth={auth} />
+      <DemoAccounts auth={auth} accounts={demoAccounts} />
     </main>
   )
 }
@@ -210,6 +211,54 @@ function AlarmNotifications() {
         <button className="primary-button" type="button" onClick={request}>
           {t('notify.enable')}
         </button>
+      )}
+    </section>
+  )
+}
+
+// Demo-Modus: vorbereitete Konten mit Passwort anzeigen und mit einem Klick anmelden
+export function DemoAccounts({ auth, accounts }: { auth: Auth; accounts: DemoInfo['accounts'] }) {
+  const { t } = useI18n()
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  if (accounts.length === 0) return null
+
+  async function loginAs(account: DemoInfo['accounts'][number]) {
+    setBusy(true)
+    setFailed(false)
+    try {
+      await auth.login(account.username, account.password)
+      window.location.hash = account.role === 'Admin' ? 'admin' : 'boxen'
+    } catch {
+      setFailed(true)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="admin-panel login-panel demo-accounts" aria-labelledby="demo-accounts-heading">
+      <div>
+        <p className="section-kicker">{t('demo.kicker')}</p>
+        <h2 id="demo-accounts-heading">{t('demo.accounts')}</h2>
+        <p className="chart-note">{t('demo.accountsIntro')}</p>
+      </div>
+      <ul>
+        {accounts.map((account) => (
+          <li key={account.username}>
+            <div>
+              <strong>{account.username}</strong> · {t(`demo.role.${account.role}`)}
+              <small>{t('demo.password', { password: account.password })}</small>
+            </div>
+            <button className="secondary-button" type="button" disabled={busy} onClick={() => loginAs(account)}>
+              {t('demo.loginAs', { name: account.username })}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {failed && (
+        <p className="form-error" role="alert">
+          {t('error.generic')}
+        </p>
       )}
     </section>
   )

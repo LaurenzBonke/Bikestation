@@ -25,7 +25,7 @@ builder.Services.AddDbContext<BikestationDbContext>(options =>
 
 builder.Services.Configure<OccupancyOptions>(builder.Configuration.GetSection(OccupancyOptions.SectionName));
 
-// API-Key für ESP32 und KI-Dienst
+// API-Key für die Station (Raspberry Pi)
 var deviceSection = builder.Configuration.GetSection(DeviceOptions.SectionName);
 builder.Services.Configure<DeviceOptions>(deviceSection);
 if ((deviceSection.Get<DeviceOptions>()?.ApiKey.Length ?? 0) < 16)
@@ -53,6 +53,15 @@ builder.Services.Configure<AnomalyOptions>(builder.Configuration.GetSection(Anom
 builder.Services.AddSingleton<AnomalyDetectionWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AnomalyDetectionWorker>());
 builder.Services.AddHostedService<DataRetentionWorker>();
+
+// Demo-Modus (nur mit appsettings.Demo.json): virtuelle Station statt Raspberry Pi, Demo-Konten, Beispieldaten
+var demoSection = builder.Configuration.GetSection(DemoOptions.SectionName);
+builder.Services.Configure<DemoOptions>(demoSection);
+if (demoSection.GetValue<bool>(nameof(DemoOptions.VirtualStation)))
+{
+    builder.Services.AddSingleton<VirtualStation>();
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<VirtualStation>());
+}
 
 // Einheitliche Fehlerantworten (ProblemDetails) ohne interne Details wie Stacktraces
 builder.Services.AddProblemDetails();
@@ -119,6 +128,9 @@ if (args.Length > 0 && args[0] == "create-admin")
     return await CreateAdminCommand.RunAsync(app.Services, args);
 }
 
+// Demo-Konten und Beispieldaten anlegen (nur wenn in "Demo" konfiguriert)
+await DemoSetup.RunAsync(app.Services);
+
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 app.UseStatusCodePages();
@@ -127,7 +139,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
-// Keine HTTPS-Umleitung: Die ESP32 senden per HTTP im lokalen Netz und würden einer Umleitung nicht folgen.
+// Keine HTTPS-Umleitung: Die Station sendet per HTTP im lokalen Netz und würde einer Umleitung nicht folgen.
 // HTTPS kann später ein Reverse Proxy (z. B. nginx) auf dem Raspberry Pi übernehmen.
 
 // Grundlegende Sicherheits-Header für alle Antworten

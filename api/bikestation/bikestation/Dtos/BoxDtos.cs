@@ -67,6 +67,6 @@ namespace bikestation.Dtos
         List<AlertDto> Alerts,
         List<ParkingHistoryDto> History);
 
-    // Für den Pi/ESP32: soll der Riegel einer Box offen sein?
+    // Für den Pi: soll der Riegel einer Box offen sein?
     public record DeviceBoxDto(int SlotId, BoxState State, bool LockOpen);
 }

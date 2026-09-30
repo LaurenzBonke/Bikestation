@@ -6,7 +6,7 @@ namespace bikestation.Models
         public int SlotId { get; set; }
         public Slot? Slot { get; set; }
 
-        // Rohwert des SEN0616 (ESP32-ADC, 12 Bit: 0–4095)
+        // Rohwert eines Drucksensors (0–4095). Beim Hackathon nicht angeschlossen, der Pi sendet 0
         public int Pressure { get; set; }
 
         // Abstand vom Grove Ultrasonic Ranger in cm
@@ -17,7 +17,7 @@ namespace bikestation.Models
         // Vom Backend berechnete Belegung zum Zeitpunkt der Messung
         public bool Occupied { get; set; }
 
-        // Zeitstempel wird vom Server gesetzt (UTC), nicht vom ESP32
+        // Zeitstempel wird vom Server gesetzt (UTC), nicht von der Station
         public DateTime Timestamp { get; set; }
     }
 }

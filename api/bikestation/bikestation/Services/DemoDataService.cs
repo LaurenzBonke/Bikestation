@@ -6,15 +6,16 @@ using Microsoft.Extensions.Options;
 namespace bikestation.Services
 {
     // Erzeugt realistische Messdaten der letzten Tage – nur für Entwicklung und Präsentation,
-    // damit Statistik und KI schon ohne echte Hardware etwas zeigen.
-    public class DemoDataService(BikestationDbContext db, IOptions<OccupancyOptions> options)
+    // damit Statistik und KI schon ohne echte Hardware etwas zeigen. Wie an der echten Station
+    // misst nur der Ultraschallsensor (Fahrrad steht direkt davor), ein Drucksensor fehlt.
+    public class DemoDataService(BikestationDbContext db, IOptions<BoxOptions> options)
     {
         private const int StepMinutes = 5;
 
         public async Task<int> GenerateAsync(int days)
         {
             var random = new Random(42);
-            var threshold = options.Value.PressureThreshold;
+            var bikeMaxDistance = options.Value.BikePresentMaxDistanceCm;
             var end = DateTime.UtcNow;
             var start = end.AddDays(-days);
             var slots = db.Slots.Select(s => s.Id).ToList();
@@ -32,29 +33,25 @@ namespace bikestation.Services
                         occupied = random.NextDouble() < target;
                     }
 
-                    // Seltene Manipulation: Rütteln, Druck springt, Abstand schwankt
+                    // Seltene Manipulation: Rütteln, der Abstand springt
                     var tamper = random.NextDouble() < 0.002;
 
-                    var pressure = occupied
-                        ? Noise(random, 850, 40)
-                        : Noise(random, 40, 15);
                     var distance = occupied
-                        ? Noise(random, 28, 2)
+                        ? Noise(random, 3, 1)
                         : Noise(random, 80, 3);
 
                     if (tamper)
                     {
-                        pressure = Math.Clamp(pressure + random.Next(-600, 300), 0, 4095);
-                        distance = Math.Clamp(distance + random.Next(-20, 40), 0, 1000);
+                        distance = Math.Clamp(distance + random.Next(0, 40), 0, 1000);
                     }
 
                     db.SensorReadings.Add(new SensorReading
                     {
                         SlotId = slotId,
-                        Pressure = pressure,
+                        Pressure = 0,
                         Distance = distance,
                         Vibration = tamper,
-                        Occupied = pressure >= threshold,
+                        Occupied = distance <= bikeMaxDistance,
                         Timestamp = time
                     });
                     count++;
