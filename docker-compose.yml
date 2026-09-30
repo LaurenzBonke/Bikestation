@@ -1,0 +1,6 @@
+# Demo ohne Hardware: docker compose up --build  ->  http://localhost:8080
+services:
+  bikestation:
+    build: .
+    ports:
+      - "8080:8080"

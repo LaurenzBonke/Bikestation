@@ -854,3 +854,69 @@ a.primary-button, a.secondary-button { text-decoration: none; }
   .station-item { grid-template-columns: 1fr; }
   .station-actions { justify-content: flex-start; }
 }
+
+/* ---------- Demo-Modus: virtuelle Station und Demo-Zugänge ---------- */
+.demo-station { border-style: dashed; }
+
+.demo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin: 16px 0 0; padding: 0; list-style: none; }
+
+.demo-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+
+.demo-card h3 { margin: 0; color: var(--ink); font: 600 16px 'Space Grotesk', sans-serif; }
+
+.demo-drawing { width: 100%; max-width: 260px; height: auto; align-self: center; }
+
+.demo-box { fill: var(--surface); stroke: var(--frame); stroke-width: 2.5; }
+
+.demo-sensor { fill: var(--icon); }
+
+.demo-beam { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 3; transition: all .4s; }
+
+.demo-bike { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: translateX(40px); transition: opacity .4s, transform .4s; }
+
+.demo-bike.is-present { opacity: 1; transform: none; }
+
+.demo-led { fill: var(--grey-light); stroke: var(--frame); stroke-width: 1.5; transition: fill .3s; }
+
+.demo-led.is-on { fill: var(--live-dot); filter: drop-shadow(0 0 4px var(--live-dot)); }
+
+.demo-servo { fill: var(--frame); }
+
+/* Der Riegel dreht sich am Servo nach oben weg, wenn er öffnet */
+.demo-latch { fill: var(--red); transform-box: view-box; transform-origin: 152px 28px; transition: transform .6s ease, fill .3s; }
+
+.demo-latch.is-open { fill: var(--free); transform: rotate(-100deg); }
+
+.demo-facts { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; color: var(--text); font-size: 13px; }
+
+.demo-facts li { display: flex; align-items: center; gap: 8px; }
+
+.demo-dot { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; background: var(--red); }
+
+.demo-dot.is-open { background: var(--free); }
+
+.demo-dot.led { background: var(--grey-light); }
+
+.demo-dot.led.is-on { background: var(--live-dot); }
+
+.demo-dot.sensor { border-radius: 2px; background: var(--accent); }
+
+.demo-hint { margin: 0; color: var(--text); font-size: 13px; line-height: 1.45; }
+
+.danger-button { border-color: var(--red); color: var(--red); }
+
+.danger-button:hover:not(:disabled) { background: var(--red-soft); }
+
+.demo-accounts { margin-top: 18px; }
+
+.demo-accounts h2 { margin: 4px 0 6px; font: 600 18px 'Space Grotesk', sans-serif; color: var(--ink); }
+
+.demo-accounts ul { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+
+.demo-accounts li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+
+.demo-accounts small { display: block; color: var(--muted); font-size: 13px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-latch, .demo-bike, .demo-beam { transition: none; }
+}

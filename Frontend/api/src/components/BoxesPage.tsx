@@ -9,8 +9,9 @@ import { useBoxes } from '../useBoxes'
 import { formatDateTime, formatTime } from '../format'
 import { slotName } from '../slotStatus'
 import { useI18n, type TranslationKey } from '../i18n'
+import DemoStation from './DemoStation'
 
-type Props = { auth: Auth; status: MyStatus }
+type Props = { auth: Auth; status: MyStatus; virtualStation: boolean }
 
 const STEPS: { state: BoxState; label: TranslationKey }[] = [
   { state: 'OpenForParking', label: 'my.step1' },
@@ -36,7 +37,7 @@ function errorKey(error: unknown): TranslationKey {
   return 'error.generic'
 }
 
-export default function BoxesPage({ auth, status }: Props) {
+export default function BoxesPage({ auth, status, virtualStation }: Props) {
   const { t } = useI18n()
   const token = auth.session?.token ?? null
   const { boxes, loaded, refresh } = useBoxes(token)
@@ -124,6 +125,15 @@ export default function BoxesPage({ auth, status }: Props) {
           ))}
         </ul>
       </section>
+
+      {virtualStation && (
+        <DemoStation
+          onChange={() => {
+            refresh()
+            status.refresh()
+          }}
+        />
+      )}
 
       {status.me && status.me.history.length > 0 && (
         <section className="admin-panel admin-section" aria-labelledby="history-heading">

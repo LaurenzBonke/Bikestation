@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace bikestation.Security
 {
-    // Schützt Endpunkte, die von Geräten (ESP32) oder dem KI-Dienst aufgerufen werden.
+    // Schützt Endpunkte, die von der Station (Raspberry Pi) aufgerufen werden.
     // Für Geräte ist ein fester Schlüssel einfacher als ein JWT-Login.
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class RequireApiKeyAttribute : Attribute, IAuthorizationFilter

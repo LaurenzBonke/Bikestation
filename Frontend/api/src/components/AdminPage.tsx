@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { ApiError, api, type Alert, type BoxEvent, type BoxOccupancy } from '../api'
+import { ApiError, api, type Alert, type BoxEvent, type BoxOccupancy, type DemoInfo } from '../api'
+import { DemoAccounts } from './AccountPage'
 import { PinIcon } from './Dashboard'
 import type { Auth } from '../useAuth'
 import type { StationData } from '../useStationData'
@@ -11,13 +12,15 @@ import { useI18n, type TranslationKey } from '../i18n'
 type AdminPageProps = {
   auth: Auth
   data: StationData
+  demoAccounts: DemoInfo['accounts']
 }
 
-export default function AdminPage({ auth, data }: AdminPageProps) {
+export default function AdminPage({ auth, data, demoAccounts }: AdminPageProps) {
   const { t } = useI18n()
   return (
     <main id="main" className={`admin-shell ${auth.session ? '' : 'login-shell'}`} tabIndex={-1}>
       {!auth.session && <LoginForm auth={auth} />}
+      {!auth.session && <DemoAccounts auth={auth} accounts={demoAccounts.filter((a) => a.role === 'Admin')} />}
       {auth.session && auth.session.role !== 'Admin' && (
         <p className="error-notice" role="alert">
           {t('admin.noPermission')}
@@ -448,7 +451,7 @@ function LoginForm({ auth }: { auth: Auth }) {
   )
 }
 
-function AdminArea({ auth, data }: AdminPageProps) {
+function AdminArea({ auth, data }: Omit<AdminPageProps, 'demoAccounts'>) {
   const { t, locale } = useI18n()
   const session = auth.session!
   const [message, setMessage] = useState('')

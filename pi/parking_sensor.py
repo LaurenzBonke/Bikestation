@@ -9,11 +9,13 @@ Pins wie im ursprünglichen parking_sensor.py: Trigger GPIO4, Echo GPIO14, Servo
 - Server NICHT erreichbar: alte Logik – Objekt näher als SCHWELLE_CM -> zu, sonst auf.
 
 Starten: in Thonny auf "Ausführen" oder  python3 parking_sensor.py
-Nur EIN Programm darf die Pins nutzen – dieses Programm stoppt deshalb den Hintergrund-Dienst.
+Der API-Key des Servers steht in config.ini neben diesem Programm (Vorlage: config.example.ini)
+oder in der Umgebungsvariable BIKESTATION_API_KEY. Die Server-Adresse lässt sich mit
+BIKESTATION_API_URL überschreiben.
 """
 
 import json
-import subprocess
+import os
 import time
 import urllib.error
 import urllib.request
@@ -40,12 +42,14 @@ SCHRITTE = 10            # sanft in kleinen Schritten fahren statt ruckartig
 LOKAL_BESTAETIGUNG = 3   # ohne Server: so viele gleiche Messungen hintereinander, bevor die Schranke fährt
 
 SLOT_ID = 1
-API_URL = "http://192.168.1.198:8080"
-API_KEY_DATEI = "/home/bike/bikestation-agent/config.ini"  # API-Key steht dort (api_key = ...)
+API_URL = os.environ.get("BIKESTATION_API_URL", "http://192.168.1.198:8080")  # Server-PC beim Hackathon
+API_KEY_DATEI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.ini")  # Zeile: api_key = ...
 INTERVALL_S = 1.0
 
 
 def api_key_lesen() -> str:
+    if os.environ.get("BIKESTATION_API_KEY"):
+        return os.environ["BIKESTATION_API_KEY"]
     try:
         for zeile in open(API_KEY_DATEI, encoding="utf-8"):
             if zeile.strip().startswith("api_key"):
@@ -53,12 +57,6 @@ def api_key_lesen() -> str:
     except OSError:
         pass
     return ""
-
-
-def dienst_stoppen() -> None:
-    """Der Hintergrund-Dienst würde dieselben Pins belegen ('GPIO busy') – vorher anhalten."""
-    subprocess.run(["systemctl", "--user", "stop", "bikestation-agent"],
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def an_server_senden(abstand_cm: int, api_key: str):
@@ -73,9 +71,6 @@ def an_server_senden(abstand_cm: int, api_key: str):
 
 
 def main() -> None:
-    dienst_stoppen()
-    time.sleep(0.5)
-
     sensor = DistanceSensor(echo=ECHO_PIN, trigger=TRIGGER_PIN, max_distance=1.0, pin_factory=LGPIOFactory())
     servo = AngularServo(SERVO_PIN, min_angle=0, max_angle=180,
                          min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000, pin_factory=LGPIOFactory())

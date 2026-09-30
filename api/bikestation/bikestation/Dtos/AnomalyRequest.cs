@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace bikestation.Dtos
 {
-    // Wird vom KI-Dienst (ai/anomaly_service.py) an POST /api/anomalies geschickt
+    // Meldung einer Anomalie für POST /api/anomalies (die eingebaute Erkennung nutzt denselben Weg)
     public class AnomalyRequest
     {
         [Required]

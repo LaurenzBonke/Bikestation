@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace bikestation.Controllers
 {
-    // Schnittstelle für die Geräte (Raspberry Pi / ESP32), geschützt per API-Key
+    // Schnittstelle für die Geräte (Raspberry Pi), geschützt per API-Key
     [ApiController]
     [Route("api/device")]
     [RequireApiKey]

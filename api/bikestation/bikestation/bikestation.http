@@ -14,7 +14,7 @@ Accept: application/json
 GET {{bikestation_HostAddress}}/api/slots/2/readings?limit=20
 Accept: application/json
 
-### ESP32 meldet: Fahrrad steht auf Slot 2
+### Station meldet: Fahrrad steht auf Slot 2
 POST {{bikestation_HostAddress}}/api/sensor-data
 Content-Type: application/json
 X-Api-Key: {{apiKey}}
@@ -26,7 +26,7 @@ X-Api-Key: {{apiKey}}
   "vibration": false
 }
 
-### ESP32 meldet: Vibration auf Slot 2
+### Station meldet: Vibration auf Slot 2
 POST {{bikestation_HostAddress}}/api/sensor-data
 Content-Type: application/json
 X-Api-Key: {{apiKey}}
@@ -42,11 +42,11 @@ X-Api-Key: {{apiKey}}
 GET {{bikestation_HostAddress}}/api/statistics?days=7
 Accept: application/json
 
-### Messwerte aller Slots (für den KI-Dienst)
+### Messwerte aller Slots (für externe Auswertungen)
 GET {{bikestation_HostAddress}}/api/sensor-readings?afterId=0&limit=20
 Accept: application/json
 
-### KI-Dienst meldet Anomalie
+### Externer Dienst meldet Anomalie
 POST {{bikestation_HostAddress}}/api/anomalies
 Content-Type: application/json
 X-Api-Key: {{apiKey}}

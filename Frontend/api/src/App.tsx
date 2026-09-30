@@ -10,6 +10,7 @@ import { useStationData } from './useStationData'
 import { useAuth } from './useAuth'
 import { useRoute } from './useRoute'
 import { useMyStatus } from './useMyStatus'
+import { useDemoInfo } from './useDemo'
 import { useI18n } from './i18n'
 
 function skipToContent(event: MouseEvent<HTMLAnchorElement>) {
@@ -23,6 +24,7 @@ export default function App() {
   const data = useStationData(isAdmin ? auth.session!.token : null)
   const route = useRoute()
   const status = useMyStatus(auth)
+  const demo = useDemoInfo()
   const { t } = useI18n()
 
   useEffect(() => {
@@ -44,9 +46,9 @@ export default function App() {
       </a>
       <Header connected={data.connected} route={route} auth={auth} />
       <AlarmBanner auth={auth} status={status} />
-      {route === 'admin' && <AdminPage auth={auth} data={data} />}
-      {route === 'boxes' && <BoxesPage auth={auth} status={status} />}
-      {route === 'account' && <AccountPage auth={auth} />}
+      {route === 'admin' && <AdminPage auth={auth} data={data} demoAccounts={demo.accounts} />}
+      {route === 'boxes' && <BoxesPage auth={auth} status={status} virtualStation={demo.virtualStation} />}
+      {route === 'account' && <AccountPage auth={auth} demoAccounts={demo.accounts} />}
       {route === 'statistics' && <StatisticsPage />}
       {route === 'overview' && <Dashboard data={data} isAdmin={isAdmin} />}
     </>
