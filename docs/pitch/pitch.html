@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Smart Bikestation – Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Farben und Schriften wie im Dashboard (Frontend/api/src/style.css) */
+  :root {
+    --bg: #f4f5f1; --surface: #fff; --surface-2: #f3f6f2; --border: #e5e9e3; --line: #edf0eb;
+    --ink: #202a27; --text: #3f4943; --muted: #5d6660;
+    --green: #1d7656; --green-dark: #155f44; --green-soft: #e2f1e8;
+    --red: #b3473b; --red-soft: #fdecea; --accent: #e36e4e;
+  }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); }
+  body { font-family: 'DM Sans', 'Segoe UI', sans-serif; color: var(--text); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; padding: 11mm 13mm 9mm; display: flex; flex-direction: column; gap: 3.6mm; overflow: hidden; }
+  h1, h2, h3, .num { font-family: 'Space Grotesk', sans-serif; color: var(--ink); margin: 0; }
+
+  /* Kopf */
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 10px; font: 700 20px 'Space Grotesk', sans-serif; color: var(--ink); letter-spacing: -.3px; }
+  .brand .dot { color: var(--accent); }
+  .logo { width: 36px; height: 36px; border-radius: 9px; background: var(--green); display: grid; place-items: center; }
+  .logo svg { width: 24px; stroke: #fff; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .tag { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); border: 1px solid var(--border); background: var(--surface); padding: 6px 10px; border-radius: 999px; }
+
+  .hero { display: grid; grid-template-columns: 1.35fr 1fr; gap: 8mm; align-items: end; }
+  .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; color: var(--green); margin-bottom: 7px; }
+  .eyebrow::before { content: ''; width: 22px; height: 2px; background: var(--accent); }
+  h1 { font-size: 30px; line-height: 1.02; letter-spacing: -1.2px; }
+  h1 em { font-style: normal; color: var(--green); }
+  .lead { margin: 7px 0 0; font-size: 11.5px; line-height: 1.5; }
+
+  /* "Live-Karte" wie im Dashboard */
+  .live { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; }
+  .live-top { display: flex; justify-content: space-between; font-size: 8.5px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+  .live-top span:last-child { display: flex; align-items: center; gap: 5px; }
+  .live-top span:last-child::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #27a16d; }
+  .callout { margin-top: 7px; border: 2px solid var(--ink); border-radius: 11px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .callout strong { font: 600 14px 'Space Grotesk', sans-serif; color: var(--ink); display: block; }
+  .callout small { font-size: 10px; color: var(--text); font-weight: 600; }
+  .callout .btn { background: var(--ink); color: #fff; border-radius: 999px; padding: 6px 10px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+
+  /* Problem / Lösung */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 13px; }
+  .card h2 { font-size: 13px; margin-bottom: 4px; }
+  .card p, .card li { font-size: 10.3px; line-height: 1.45; margin: 0; }
+  .card ul { margin: 0; padding-left: 15px; }
+  .kicker { font-size: 8.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 4px; }
+  .problem { border-left: 4px solid var(--accent); }
+  .solution { border-left: 4px solid var(--green); }
+
+  /* Journey */
+  .journey h2 { font-size: 14px; margin-bottom: 7px; }
+  .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; position: relative; }
+  .steps::before { content: ''; position: absolute; top: 15px; left: 10%; right: 10%; height: 2px; background: repeating-linear-gradient(90deg, var(--green) 0 6px, transparent 6px 11px); }
+  .step { position: relative; text-align: center; padding: 0 5px; }
+  .step .n { width: 31px; height: 31px; margin: 0 auto 7px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font: 700 13px 'Space Grotesk', sans-serif; box-shadow: 0 0 0 4px var(--bg); position: relative; }
+  .step h3 { font-size: 11.5px; margin-bottom: 3px; }
+  .step p { margin: 0; font-size: 9.6px; line-height: 1.42; color: var(--text); }
+  .step .lock { display: inline-block; margin-top: 4px; font-size: 8.5px; font-weight: 700; letter-spacing: .5px; padding: 2px 7px; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); }
+  .step .lock.closed { background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); }
+  .alarm { margin-top: 7px; display: flex; align-items: center; gap: 10px; background: var(--red-soft); border: 1px solid #efc4bd; border-left: 5px solid var(--red); border-radius: 9px; padding: 8px 11px; font-size: 10.5px; line-height: 1.45; }
+  .alarm b { color: var(--red); }
+
+  /* Zahlen */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3.5mm; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 11px; }
+  .stat .num { font-size: 22px; letter-spacing: -.8px; color: var(--green); line-height: 1; }
+  .stat p { margin: 4px 0 0; font-size: 9.3px; line-height: 1.35; }
+
+  /* Technik */
+  .tech { display: grid; grid-template-columns: 1.15fr 1fr; gap: 4mm; }
+  .flow { display: flex; align-items: stretch; gap: 6px; margin-top: 6px; }
+  .node { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 7px 8px; font-size: 9.5px; line-height: 1.35; }
+  .node b { display: block; font: 700 10.5px 'Space Grotesk', sans-serif; color: var(--ink); margin-bottom: 2px; }
+  .arrow { align-self: center; color: var(--green); font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .chip { font-size: 9.5px; font-weight: 600; padding: 4px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); }
+
+  /* Fuß */
+  .bottom { margin-top: auto; display: grid; grid-template-columns: 1.3fr 1fr; gap: 4mm; align-items: stretch; }
+  .next { background: var(--ink); color: #dfe6e1; border-radius: 12px; padding: 11px 14px; }
+  .next h2 { color: #fff; font-size: 13px; margin-bottom: 5px; }
+  .next ul { margin: 0; padding-left: 15px; font-size: 10px; line-height: 1.5; }
+  .ask { background: var(--green); color: #fff; border-radius: 12px; padding: 11px 14px; display: flex; flex-direction: column; justify-content: center; }
+  .ask strong { font: 700 15px/1.2 'Space Grotesk', sans-serif; }
+  .ask span { font-size: 10px; margin-top: 4px; color: #d8efe3; line-height: 1.4; }
+  footer { display: flex; justify-content: space-between; font-size: 8.5px; color: var(--muted); }
+  footer span:last-child::after { content: ' ✳'; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 32 24"><circle cx="7" cy="16" r="5"/><circle cx="25" cy="16" r="5"/><path d="m7 16 6-10 6 10H7Zm6-10h5m-2 0 9 10"/></svg></span>
+      <span>bikestation<span class="dot">.</span></span>
+    </div>
+    <span class="tag">HACKATHON 2026 · FUNKTIONIERENDER PROTOTYP</span>
+  </div>
+
+  <section class="hero">
+    <div>
+      <div class="eyebrow">SMART BIKESTATION</div>
+      <h1>Fahrrad parken.<br><em>Sicher</em> abschließen.<br>Live sehen, was frei ist.</h1>
+      <p class="lead">Eine abschließbare Fahrradbox, die man per Web-App bucht und öffnet. Sensoren erkennen das Fahrrad, ein Servo-Riegel verriegelt automatisch – und wird es ohne Öffnen entfernt, schlägt die App Alarm. Ohne Kamera, ohne Schlüssel, ohne App-Store.</p>
+    </div>
+    <div class="live" aria-hidden="true">
+      <div class="live-top"><span>FREIE STELLPLÄTZE</span><span>LIVE</span></div>
+      <div class="callout">
+        <div><strong>Stellplatz 1 ist frei</strong><small>📍 Hackathon Halle</small></div>
+        <span class="btn">Jetzt buchen →</span>
+      </div>
+      <div class="callout" style="border-color: var(--border); border-width: 1px;">
+        <div><strong style="font-size:13px">Verriegelt</strong><small>Dein Fahrrad ist sicher</small></div>
+        <span class="btn" style="background: var(--surface-2); color: var(--ink); border: 1px solid var(--border)">Abholen</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="duo">
+    <div class="card problem">
+      <div class="kicker">DAS PROBLEM</div>
+      <h2>Fahrradständer sind voll, offen und blind.</h2>
+      <ul>
+        <li>Man weiß erst vor Ort, ob noch ein Platz frei ist.</li>
+        <li>Teure Räder und E-Bikes stehen ungeschützt – Diebstahl merkt man zu spät.</li>
+        <li>Betreiber haben keinen Überblick über Auslastung und Vorfälle.</li>
+      </ul>
+    </div>
+    <div class="card solution">
+      <div class="kicker">UNSERE LÖSUNG</div>
+      <h2>Eine Box, die mitdenkt – im Browser steuerbar.</h2>
+      <ul>
+        <li>Live-Belegung aller Stationen mit Ort, von überall abrufbar.</li>
+        <li>Buchen, öffnen, abholen per Klick – der Riegel reagiert in Sekunden.</li>
+        <li>Alarm bei unerlaubter Entnahme, Admin-Übersicht mit Protokoll.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="journey card">
+    <div class="kicker">DIE NUTZER-JOURNEY</div>
+    <h2>Vom freien Platz bis zum Abholen – in fünf Schritten</h2>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h3>Freien Platz sehen</h3><p>Übersicht zeigt „Stellplatz 1 ist frei“ mit Ort.</p></div>
+      <div class="step"><div class="n">2</div><h3>Buchen</h3><p>Ein Klick – der Servo-Riegel öffnet die Box.</p><span class="lock">RIEGEL AUF</span></div>
+      <div class="step"><div class="n">3</div><h3>Fahrrad rein</h3><p>Ultraschall erkennt das Rad, nach 5 s wird verriegelt.</p><span class="lock closed">RIEGEL ZU</span></div>
+      <div class="step"><div class="n">4</div><h3>Abholen</h3><p>„Abholen“ tippen – die Box öffnet sich wieder.</p><span class="lock">RIEGEL AUF</span></div>
+      <div class="step"><div class="n">5</div><h3>Box frei</h3><p>Rad entnommen – Box schließt und ist wieder buchbar.</p><span class="lock closed">RIEGEL ZU</span></div>
+    </div>
+    <div class="alarm"><span style="font-size:18px">⚠</span><span><b>Und wenn jemand das Rad ohne Öffnen herausnimmt?</b> Der Besitzer bekommt sofort eine Alarm-Meldung mit Ton, die Box wird gesperrt und der Admin sieht im Protokoll, wer wann an welcher Station war.</span></div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><div class="num">0</div><p>Kameras und keine unnötigen persönlichen Daten – nur Benutzername und Passwort.</p></div>
+    <div class="stat"><div class="num">5 s</div><p>vom erkannten Fahrrad bis zur automatischen Verriegelung.</p></div>
+    <div class="stat"><div class="num">3</div><p>Sprachen (DE/EN/NL), Hell- und Dunkelmodus, bedienbar mit Tastatur und Screenreader.</p></div>
+    <div class="stat"><div class="num">61</div><p>automatische Tests sichern Buchung, Riegel, Alarm und Rechte ab.</p></div>
+  </section>
+
+  <section class="tech">
+    <div class="card">
+      <div class="kicker">SO FUNKTIONIERT'S</div>
+      <div class="flow">
+        <div class="node"><b>Station</b>Raspberry Pi 5 / ESP32 · Ultraschall · Servo-Riegel · Status-LED</div>
+        <span class="arrow">→</span>
+        <div class="node"><b>Server</b>C# ASP.NET Core API · SQLite · Zustandsmaschine pro Box</div>
+        <span class="arrow">→</span>
+        <div class="node"><b>Web-App</b>React · live alle 2–3 s · Nutzer- und Admin-Bereich</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="kicker">DAS MACHT UNS BESONDERS</div>
+      <div class="chips">
+        <span class="chip">KI-Anomalieerkennung</span>
+        <span class="chip">Privacy by Design</span>
+        <span class="chip">Barrierearm</span>
+        <span class="chip">Offline-Fallback am Gerät</span>
+        <span class="chip">Stationen per Klick hinzufügen</span>
+        <span class="chip">Auslastungsprognose</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="bottom">
+    <div class="next">
+      <h2>Nächste Schritte</h2>
+      <ul>
+        <li>Weitere Stationen an Schule, Bahnhof und Mensa – jede Box meldet sich einfach mit ihrer Nummer.</li>
+        <li>HTTPS und Push-Benachrichtigung: Alarm auch bei gesperrtem Handy.</li>
+        <li>Gewichtssensor als zweite Erkennung, Betrieb auf eigenem Server (Proxmox).</li>
+      </ul>
+    </div>
+    <div class="ask">
+      <strong>Live-Demo:<br>Stellplatz 1, Hackathon Halle</strong>
+      <span>Buchen Sie selbst – und sehen Sie, wie die Box öffnet, verriegelt und Alarm schlägt.</span>
+    </div>
+  </section>
+
+  <footer><span>Smart Bikestation – Hackathon-Prototyp 2026</span><span>Keine Kameras, keine unnötigen personenbezogenen Daten</span></footer>
+</div>
+</body>
+</html>
