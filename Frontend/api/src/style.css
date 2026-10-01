@@ -880,6 +880,13 @@ a.primary-button, a.secondary-button { text-decoration: none; }
 
 .demo-led.is-on { fill: var(--live-dot); filter: drop-shadow(0 0 4px var(--live-dot)); }
 
+.demo-led.red.is-on { fill: var(--red-light); filter: drop-shadow(0 0 4px var(--red-light)); }
+
+/* Alarm: rote LED blinkt wie an der echten Station */
+.demo-led.is-blinking, .demo-dot.is-blinking { animation: demo-blink 1s steps(1, end) infinite; }
+
+@keyframes demo-blink { 50% { opacity: .15; } }
+
 .demo-servo { fill: var(--frame); }
 
 /* Der Riegel dreht sich am Servo nach oben weg, wenn er öffnet */
@@ -898,6 +905,10 @@ a.primary-button, a.secondary-button { text-decoration: none; }
 .demo-dot.led { background: var(--grey-light); }
 
 .demo-dot.led.is-on { background: var(--live-dot); }
+
+.demo-dot.led-red { background: var(--grey-light); }
+
+.demo-dot.led-red.is-on { background: var(--red-light); }
 
 .demo-dot.sensor { border-radius: 2px; background: var(--accent); }
 
@@ -919,4 +930,5 @@ a.primary-button, a.secondary-button { text-decoration: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .demo-latch, .demo-bike, .demo-beam { transition: none; }
+  .demo-led.is-blinking, .demo-dot.is-blinking { animation: none; }
 }

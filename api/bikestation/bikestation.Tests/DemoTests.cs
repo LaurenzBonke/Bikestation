@@ -90,6 +90,7 @@ namespace bikestation.Tests
             var free = await VirtualBox(1);
             Assert.Equal("Free", free.GetProperty("boxState").GetString());
             Assert.True(free.GetProperty("ledGreen").GetBoolean());
+            Assert.Equal("Off", free.GetProperty("ledRed").GetString());
             Assert.False(free.GetProperty("lockOpen").GetBoolean());
 
             // Buchen: Riegel öffnet
@@ -105,6 +106,7 @@ namespace bikestation.Tests
             Assert.Equal("Locked", locked.GetProperty("boxState").GetString());
             Assert.False(locked.GetProperty("lockOpen").GetBoolean());
             Assert.False(locked.GetProperty("ledGreen").GetBoolean());
+            Assert.Equal("On", locked.GetProperty("ledRed").GetString());
             Assert.True(locked.GetProperty("distanceCm").GetInt32() <= 7);
 
             // Fahrrad ohne Öffnen herausnehmen: Box gesperrt, Alarm für den Besitzer
@@ -112,6 +114,7 @@ namespace bikestation.Tests
             await Station.TickAsync();
             var blocked = await VirtualBox(1);
             Assert.Equal("Blocked", blocked.GetProperty("boxState").GetString());
+            Assert.Equal("Blinking", blocked.GetProperty("ledRed").GetString());
             var me = await user.GetFromJsonAsync<JsonElement>("/api/me");
             Assert.Contains(me.GetProperty("alerts").EnumerateArray(), a => a.GetProperty("type").GetString() == "BikeRemoved");
         }

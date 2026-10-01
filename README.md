@@ -27,7 +27,7 @@ the phone, the red LED at the box starts blinking and the box stays blocked unti
 
 No hardware needed – a **virtual station** replaces the Raspberry Pi. The server controls it exactly like the
 real one: it reports the ultrasonic distance every second, and the server's answer moves the latch and switches
-the green LED. You put the bike in or take it out with a button.
+the green and red LED. You put the bike in or take it out with a button.
 
 **With Docker** (nothing else to install):
 
@@ -58,10 +58,10 @@ statistics and forecast have something to show:
 
 1. **Account** → *Sign in as demo*. You land on **Boxes**.
 2. *Open box* on Spot 1 – in the virtual station below, the latch swings open.
-3. *Put bike in* – the sensor reads 3 cm, after 5 seconds the box locks and the green LED goes off.
+3. *Put bike in* – the sensor reads 3 cm, after 5 seconds the box locks, the green LED goes off and the red one lights up.
 4. *Open box and pick up bike* → *Take bike out* – after 5 seconds the box is free again.
 5. Try a theft: park again, then *Take bike out without opening*. The alarm banner appears (with sound),
-   the box is blocked.
+   the red LED blinks and the box is blocked.
 6. Sign in as **admin** → **Admin**: who is at which box, alerts, release the blocked box, box log,
    add or delete stations.
 7. **Statistics**: occupancy by hour and day, forecast for the next hours.
