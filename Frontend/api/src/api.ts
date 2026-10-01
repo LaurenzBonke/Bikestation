@@ -181,13 +181,14 @@ export type DemoInfo = {
   accounts: { username: string; password: string; role: UserRole }[]
 }
 
-// Eine Box der virtuellen Station – so, wie der Raspberry Pi sie mit Ultraschall, Servo und LED hätte
+// Eine Box der virtuellen Station – so, wie der Raspberry Pi sie mit Ultraschall, Servo und LEDs hätte
 export type VirtualBox = {
   slotId: number
   bikePresent: boolean
   distanceCm: number
   lockOpen: boolean
   ledGreen: boolean
+  ledRed: 'Off' | 'On' | 'Blinking'
   boxState: BoxState
 }
 

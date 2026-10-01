@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace bikestation.Services
 {
-    // Ersetzt im Demo-Modus die echte Station (Raspberry Pi mit Ultraschallsensor, Servo-Riegel und LED).
+    // Ersetzt im Demo-Modus die echte Station (Raspberry Pi mit Ultraschallsensor, Servo-Riegel und zwei LEDs).
     // Meldet jede Sekunde für jede Box einen Abstand – wie pi/parking_sensor.py und über denselben
     // SensorDataService – und merkt sich die Antwort des Servers (Riegel auf/zu, Box-Zustand).
     // Ob ein Fahrrad in der Box steht, stellt man im Dashboard ein (POST /api/demo/station/{id}/bike).
@@ -74,9 +74,16 @@ namespace bikestation.Services
                 });
                 if (response is null) continue;
 
-                // LED wie im Pi-Programm: grün aus, solange ein Fahrrad eingeschlossen oder die Box gesperrt ist
+                // LEDs wie an der Station: grün aus, solange ein Fahrrad eingeschlossen oder die Box gesperrt ist;
+                // rot an bei eingeschlossenem Fahrrad, blinkend nach unerlaubter Entnahme
                 var ledGreen = response.BoxState is not (BoxState.Locked or BoxState.Blocked);
-                _boxes[slotId] = new VirtualBoxDto(slotId, bike, distance, response.LockOpen, ledGreen, response.BoxState);
+                var ledRed = response.BoxState switch
+                {
+                    BoxState.Locked => RedLed.On,
+                    BoxState.Blocked => RedLed.Blinking,
+                    _ => RedLed.Off
+                };
+                _boxes[slotId] = new VirtualBoxDto(slotId, bike, distance, response.LockOpen, ledGreen, ledRed, response.BoxState);
             }
         }
     }

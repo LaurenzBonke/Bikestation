@@ -4,8 +4,8 @@ import { useI18n, type TranslationKey } from '../i18n'
 import { slotName } from '../slotStatus'
 import { useVirtualStation } from '../useDemo'
 
-// Demo-Modus: ersetzt die echte Station (Raspberry Pi mit Ultraschall, Servo-Riegel und grüner LED).
-// Der Server steuert Riegel und LED genauso wie beim Pi – hier sieht man es und stellt das Fahrrad hinein.
+// Demo-Modus: ersetzt die echte Station (Raspberry Pi mit Ultraschall, Servo-Riegel, grüner und roter LED).
+// Der Server steuert Riegel und LEDs genauso wie beim Pi – hier sieht man es und stellt das Fahrrad hinein.
 export default function DemoStation({ onChange }: { onChange: () => void }) {
   const { t } = useI18n()
   const { boxes, failed, refresh } = useVirtualStation()
@@ -78,6 +78,10 @@ function VirtualBoxCard({ box, busy, onSetBike }: { box: VirtualBox; busy: boole
           {box.ledGreen ? t('demo.ledOn') : t('demo.ledOff')}
         </li>
         <li>
+          <span className={`demo-dot led-red ${box.ledRed === 'Off' ? '' : 'is-on'} ${box.ledRed === 'Blinking' ? 'is-blinking' : ''}`} aria-hidden="true"></span>
+          {t(`demo.red.${box.ledRed}`)}
+        </li>
+        <li>
           <span className="demo-dot sensor" aria-hidden="true"></span>
           {t('demo.distance', { cm: box.distanceCm })}
         </li>
@@ -98,7 +102,7 @@ function VirtualBoxCard({ box, busy, onSetBike }: { box: VirtualBox; busy: boole
   )
 }
 
-// Seitenansicht der Box: Ultraschallsensor links, Servo-Riegel an der Öffnung rechts, LED oben
+// Seitenansicht der Box: Ultraschallsensor links, Servo-Riegel an der Öffnung rechts, LEDs oben
 function BoxDrawing({ box, label }: { box: VirtualBox; label: string }) {
   return (
     <svg className="demo-drawing" viewBox="0 0 180 120" role="img" aria-label={label}>
@@ -112,8 +116,14 @@ function BoxDrawing({ box, label }: { box: VirtualBox; label: string }) {
         <circle cx="114" cy="84" r="14" />
         <path d="M62 84 L80 60 L104 60 L114 84 M80 60 L88 84 L104 60 M76 54 L86 54 M104 60 L100 50 L108 50" />
       </g>
-      {/* LED */}
+      {/* LEDs: grün = frei, rot = Fahrrad eingeschlossen (blinkt bei Alarm) */}
       <circle className={`demo-led ${box.ledGreen ? 'is-on' : ''}`} cx="36" cy="14" r="7" />
+      <circle
+        className={`demo-led red ${box.ledRed === 'Off' ? '' : 'is-on'} ${box.ledRed === 'Blinking' ? 'is-blinking' : ''}`}
+        cx="56"
+        cy="14"
+        r="7"
+      />
       {/* Servo-Riegel: dreht sich am Drehpunkt oben rechts nach oben, wenn er öffnet */}
       <circle className="demo-servo" cx="152" cy="28" r="6" />
       <rect className={`demo-latch ${box.lockOpen ? 'is-open' : ''}`} x="149" y="28" width="6" height="72" rx="3" />
